@@ -1,3 +1,6 @@
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -9,28 +12,76 @@ import java.util.HashMap;
 public class Server {
 
     int port;
-    final String SERVERNAME = "FWebServer";
-    final String VERSION = "0.2.2";
-    ServerSocket mainsocket;
-    Thread incoming;
-    ArrayList<String> blacklist = new ArrayList<>();
-    HashMap<String, GenericServerRunnable> specialkeywords = new HashMap<>();
-    File accesslog;
-    File errorlog;
-    File configfile;
+    private String SERVERNAME = "FWebServer";
+    private final String VERSION = "0.2.3";
+    private ServerSocket mainsocket;
+    private Thread incoming;
+    private ArrayList<String> blacklist = new ArrayList<>();
+    private HashMap<String, GenericServerRunnable> specialkeywords = new HashMap<>();
+    private File accesslog;
+    private File errorlog;
+    private File configfile;
+    private Gson gsoninstance;
+    private ServerConfig config;
 
-    public Server(int port) {
+    String wwwroot;
+
+
+    Server(int port) {
+        prepareConfig();
         prepareLog();
         prepareHTMLProcessor();
-        prepareConfig();
         this.port = port;
         start();
     }
 
+    /**
+     * Reads a existing config file or creates a new one
+     */
     private void prepareConfig() {
+        StringBuilder json = new StringBuilder();
+        gsoninstance = new GsonBuilder().setPrettyPrinting().create();
         configfile = new File("server.json");
+
+        if (configfile.exists()) {
+            try {
+                BufferedReader br = new BufferedReader(new FileReader(configfile));
+                String line;
+                while((line = br.readLine()) != null) {
+                    json.append(line);
+                }
+                br.close();
+                config = gsoninstance.fromJson(json.toString(), ServerConfig.class);
+            }
+            catch (IOException e) {
+                e.printStackTrace();
+            }
+        } else {
+            config = new ServerConfig();
+            config.createNewConfig();
+            String jsonout = gsoninstance.toJson(config);
+
+            try {
+                BufferedWriter bw = new BufferedWriter(new FileWriter(configfile));
+                bw.write(jsonout);
+                bw.close();
+            }
+            catch (IOException e) {
+                e.printStackTrace();
+            }
+
+        }
+
+        this.SERVERNAME = config.getServername();
+        this.wwwroot = config.getWwwroot();
+
     }
 
+    /**
+     * Add keywords with their functions to the hashmap
+     * The HTML processor will later replace the keywords with the
+     * result of each function.
+     */
     private void prepareHTMLProcessor() {
         specialkeywords.put("$(useragent)", this::getUserAgent);
         specialkeywords.put("$(serverversion)", header -> VERSION);
@@ -39,8 +90,9 @@ public class Server {
         specialkeywords.put("$(osname)", header -> System.getProperty("os.name") + " " + System.getProperty("os.version") + " " + System.getProperty("os.arch"));
         specialkeywords.put("$(username)", header -> System.getProperty("user.name"));
         specialkeywords.put("$(accesslogpath)", header -> accesslog.getAbsolutePath());
-        specialkeywords.put("$(errorlogpath)", header -> accesslog.getAbsolutePath());
+        specialkeywords.put("$(errorlogpath)", header -> errorlog.getAbsolutePath());
         specialkeywords.put("$(configfilepath)", header -> configfile.getAbsolutePath());
+        specialkeywords.put("$(wwwrootpath)", header -> (new File(wwwroot).getAbsolutePath()));
         specialkeywords.put("$(compiledate)", new GenericServerRunnable() {
             @Override
             public String run(ArrayList<String> header) {
@@ -53,6 +105,10 @@ public class Server {
                 }
             }
         });
+
+        for (String key : config.getCustomkeywords().keySet()) {
+            specialkeywords.put(key, header -> config.getCustomkeywords().get(key));
+        }
         specialkeywords.put("$(keywordlist)", header -> {
             StringBuilder endstring = new StringBuilder();
 
@@ -64,10 +120,13 @@ public class Server {
         });
     }
 
+    /**
+     * Create new log files if non exist
+     */
     private void prepareLog() {
-        accesslog = new File("logs/access.log");
-        errorlog = new File("logs/error.log");
-        File logfolder = new File("logs");
+        accesslog = new File(config.getAccesslog());
+        errorlog = new File(config.getErrorlog());
+        File logfolder = new File(config.getLogfolder());
 
         if (!logfolder.exists()) {
             logfolder.mkdir();
@@ -80,6 +139,9 @@ public class Server {
         }
     }
 
+    /**
+     * starts the main thread
+     */
     private void start() {
         try {
             mainsocket = new ServerSocket(port);
@@ -90,6 +152,10 @@ public class Server {
         }
     }
 
+    /**
+     * adds a string to the access log
+     * @param tolog the string to append
+     */
     private void logAccess(String tolog) {
         try {
             FileWriter fw = new FileWriter(accesslog, true);
@@ -106,6 +172,10 @@ public class Server {
         }
     }
 
+    /**
+     * adds a string to the error log
+     * @param toerrorlog the string to append
+     */
     private void logError(String toerrorlog) {
         try {
             FileWriter fw = new FileWriter(errorlog, true);
@@ -122,7 +192,12 @@ public class Server {
         }
     }
 
-    public String getUserAgent(ArrayList<String> header) {
+    /**
+     * Gets the user agent of a browser from the header
+     * @param header the received header
+     * @return the useragent
+     */
+    private String getUserAgent(ArrayList<String> header) {
         String uaheader = "";
         for (String s : header) {
             if (s.startsWith("User-Agent:")) {
@@ -142,15 +217,17 @@ public class Server {
 
     /**
      * 0 = not exist, 1 = exists, 2 = no permissions
-     * @param filename
-     * @return
+     *
+     * checks if a wanted file exists
+     * @param filename the file to check
+     * @return status code of the file
      */
     private int fileExists(String filename) {
         if (filename.startsWith("..") || filename.startsWith("/")) {
             filename = filename.replace("..", "").replaceFirst("/", "");
         }
 
-        File temp = new File(filename);
+        File temp = new File(wwwroot + "/" + filename);
 
         if (!blacklist.contains(filename)) {
             if (temp.exists()) {
@@ -161,6 +238,12 @@ public class Server {
         return 2;
     }
 
+    /**
+     * The HTML Processor replaces special keywords with results of functions
+     * @param rawhtml the html from the file
+     * @param header the client header
+     * @return the processed HTML
+     */
     private String processHTML(String rawhtml, ArrayList<String> header) {
         for(String keys : specialkeywords.keySet()) {
             rawhtml = rawhtml.replace(keys, specialkeywords.get(keys).run(header));
@@ -168,13 +251,18 @@ public class Server {
         return rawhtml;
     }
 
+    /**
+     * Read a file in text mode (CURRENTLY NOT USABLE FOR BINARY FILES)
+     * @param filename the file to read
+     * @return the file contents
+     */
     private String readFile(String filename) {
         //TODO: Read binary on non plain-text file
         if (filename.startsWith("..") || filename.startsWith("/")) {
             filename = filename.replaceFirst("/", "").replace("..", "");
         }
 
-        File toberead = new File(filename);
+        File toberead = new File(wwwroot + "/" + filename);
         StringBuilder tempstring = new StringBuilder();
 
         try {
@@ -253,6 +341,7 @@ public class Server {
                                 System.out.printf("[%s] GET %s\n", socket.getInetAddress().toString(), allargs[1]);
                                 logAccess("[" + socket.getInetAddress().toString() + "] GET " + allargs[1]);
                                 if (allargs[1].equals("/")) {
+                                    //TODO: Find index.html / index.htm if no document is given
                                     bw.write("HTTP/1.1 200 OK\r\n");
                                     bw.write("Server: " + SERVERNAME + "\r\n");
                                     bw.write("");

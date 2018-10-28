@@ -19,8 +19,9 @@
 	.v i {color: #999;}
 	img {float: right; border: 0;}
 	hr {width: 934px; background-color: #ccc; border: 0; height: 1px;}
+        #footer { position: absolute; bottom: 0px;}
 </style>
-<title>phpinfo()</title><meta name="ROBOTS" content="NOINDEX,NOFOLLOW,NOARCHIVE" /></head>
+<title>$(servername)</title><meta name="ROBOTS" content="NOINDEX,NOFOLLOW,NOARCHIVE" /></head>
 <body><div class="center">
 	<table>
 		<tr class="h"><td>
@@ -30,11 +31,15 @@
 	<table>
 		<tr><td class="e">System </td><td class="v">$(osname)</td></tr>
 		<tr><td class="e">Build Date </td><td class="v">$(compiledate)</td></tr>
+		<tr><td class="e">WWW-Root Path</td><td class="v">$(wwwrootpath)</td></tr>
 		<tr><td class="e">Access Log Path </td><td class="v">$(accesslogpath)</td></tr>
 		<tr><td class="e">Error Log Path</td><td class="v">$(errorlogpath)</td></tr>
 		<tr><td class="e">Configuration File (Future) Path </td><td class="v">$(configfilepath)</td></tr>
-		<tr><td class="e">Known Keywords </td><td class="v">$(keywordlist)</td></tr>
+		<tr><td class="e">Keywords </td><td class="v">$(keywordlist)</td></tr>
 	</table>
+</div>
+<div id="footer">
+    $(copyright)
 </div>
 </body>
 </html>

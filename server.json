@@ -1,0 +1,8 @@
+{
+  "customkeywords": { "$(customkeyword)" : "THIS IS AWESOME", "$(copyright)": "Copyright &copy;2018 Me"},
+  "servername": "FWebServer",
+  "wwwroot": "wwwroot",
+  "accesslog": "logs/access.log",
+  "errorlog": "logs/error.log",
+  "logfolder": "logs"
+}
