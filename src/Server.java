@@ -18,6 +18,7 @@ public class Server {
     private ServerSocket mainsocket;
     private Thread incoming;
     private ArrayList<String> blacklist = new ArrayList<>();
+    private ArrayList<String> indexfiles = new ArrayList<>();
     private HashMap<String, GenericServerRunnable> specialkeywords = new HashMap<>();
     private File accesslog;
     private File errorlog;
@@ -368,16 +369,23 @@ public class Server {
                                 System.out.printf("[%s] GET %s\n", socket.getInetAddress().toString(), allargs[1]);
                                 logAccess("[" + socket.getInetAddress().toString() + "] GET " + allargs[1]);
                                 if (allargs[1].equals("/")) {
-                                    //TODO: Find index.html / index.htm if no document is given
+                                    boolean indexfound = false;
                                     bw.write("HTTP/1.1 200 OK\r\n");
                                     bw.write("Server: " + SERVERNAME + "\r\n");
                                     bw.write("");
                                     bw.write("\r\n");
-                                    bw.write("<!doctype html>\n<html>\n<body>\n");
-                                    bw.write("<center><h1>Your Useragent</h1></center>\n");
-                                    bw.write("<center><h2>" + getUserAgent(req) + "</h2></center>");
-                                    bw.write("\n</body>");
-                                    bw.write("\n</html>");
+                                    for (String file : config.getIndexfiles()) {
+                                        if (fileExists(file) == 1) {
+                                            bw.write(processHTML(readFile(file), req));
+                                            indexfound = true;
+                                            break;
+                                        }
+                                    }
+                                    if (!indexfound) {
+                                        bw.write("<!doctype html>\n<html>\n<body>\n");
+                                        bw.write("<center><h1>404 Not Found</h1></center>");
+                                        bw.write("<center><h3>File " + allargs[1].replace("..", "").replaceFirst("/", "") + " not found!</center></h3>");
+                                    }
                                     System.out.printf("[%s] <= 200 OK\n", socket.getInetAddress().toString());
                                 } else {
                                     int fileexist = fileExists(allargs[1]);

@@ -1,8 +1,10 @@
+import java.util.ArrayList;
 import java.util.HashMap;
 
 public class ServerConfig {
 
     private HashMap<String, String> customkeywords;
+    private ArrayList<String> indexfiles;
     private String servername;
     private String wwwroot;
     private String accesslog;
@@ -11,6 +13,8 @@ public class ServerConfig {
 
     void createNewConfig() {
         customkeywords = new HashMap<>();
+        indexfiles = new ArrayList<>();
+        indexfiles.add("index.html");
         servername = "FWebServer";
         wwwroot = "wwwroot";
         accesslog = "logs/access.log";
@@ -64,5 +68,13 @@ public class ServerConfig {
 
     public void setLogfolder(String logfolder) {
         this.logfolder = logfolder;
+    }
+
+    public ArrayList<String> getIndexfiles() {
+        return indexfiles;
+    }
+
+    public void setIndexfiles(ArrayList<String> indexfiles) {
+        this.indexfiles = indexfiles;
     }
 }
