@@ -103,7 +103,7 @@ public class Server {
      * result of each function.
      */
     private void prepareHTMLProcessor() {
-        specialkeywords.put("$(useragent)", this::getUserAgent);
+        specialkeywords.put("$(useragent)", ClientHeader::getUseragent);
         specialkeywords.put("$(serverversion)", header -> VERSION);
         specialkeywords.put("$(servername)", header -> SERVERNAME);
         specialkeywords.put("$(jreversion)", header -> System.getProperty("java.version"));
@@ -113,9 +113,13 @@ public class Server {
         specialkeywords.put("$(errorlogpath)", header -> errorlog.getAbsolutePath());
         specialkeywords.put("$(configfilepath)", header -> configfile.getAbsolutePath());
         specialkeywords.put("$(wwwrootpath)", header -> (new File(wwwroot).getAbsolutePath()));
+        specialkeywords.put("$(today)", header -> (new Date()).toString());
+        specialkeywords.put("$(headertype)", ClientHeader::getRequesttype);
+        specialkeywords.put("$(headerversion)", ClientHeader::getVersion);
+        specialkeywords.put("$(headerhost)", ClientHeader::getHost);
         specialkeywords.put("$(compiledate)", new GenericServerRunnable() {
             @Override
-            public String run(ArrayList<String> header) {
+            public String run(ClientHeader header) {
                 try {
                     File jarFile = new File (this.getClass().getProtectionDomain().getCodeSource().getLocation().toURI());
                     return (new Date(jarFile.lastModified())).toString();
@@ -213,29 +217,6 @@ public class Server {
     }
 
     /**
-     * Gets the user agent of a browser from the header
-     * @param header the received header
-     * @return the useragent
-     */
-    private String getUserAgent(ArrayList<String> header) {
-        String uaheader = "";
-        for (String s : header) {
-            if (s.startsWith("User-Agent:")) {
-                uaheader = s;
-            }
-        }
-        String[] splitted = uaheader.split(" ");
-        StringBuilder uagent = new StringBuilder();
-
-        for (String s : splitted) {
-            if (s.equals("User-Agent:")) continue;
-            uagent.append(s + " ");
-        }
-
-        return uagent.toString();
-    }
-
-    /**
      * 0 = not exist, 1 = exists, 2 = no permissions
      *
      * checks if a wanted file exists
@@ -264,7 +245,7 @@ public class Server {
      * @param header the client header
      * @return the processed HTML
      */
-    private String processHTML(String rawhtml, ArrayList<String> header) {
+    private String processHTML(String rawhtml, ClientHeader header) {
         for(String keys : specialkeywords.keySet()) {
             rawhtml = rawhtml.replace(keys, specialkeywords.get(keys).run(header));
         }
@@ -335,6 +316,7 @@ public class Server {
 
         @Override
         public void run() {
+            //TODO implement timeout
             while (!Thread.currentThread().isInterrupted()) {
                 while (!socket.isClosed()) {
                     try {
@@ -350,9 +332,9 @@ public class Server {
                                 break;
                             }
                         }
-                        String[] allargs = req.get(0).split(" ");
+                        ClientHeader header = new ClientHeader(req);
 
-                        if(allargs.length != 3) {
+                        if(header.isHeadercorrupt()) {
                             bw.write("HTTP/1.1 400 Bad Request\r\n");
                             bw.write("Server: " + SERVERNAME + "\r\n");
                             bw.write("");
@@ -364,11 +346,11 @@ public class Server {
                             bw.write("</html>");
                         }
 
-                        switch (allargs[0]) {
+                        switch (header.getRequesttype()) {
                             case "GET":
-                                System.out.printf("[%s] GET %s\n", socket.getInetAddress().toString(), allargs[1]);
-                                logAccess("[" + socket.getInetAddress().toString() + "] GET " + allargs[1]);
-                                if (allargs[1].equals("/")) {
+                                System.out.printf("[%s] GET %s\n", socket.getInetAddress().toString(), header.getRequesteddocument());
+                                logAccess("[" + socket.getInetAddress().toString() + "] GET " + header.getRequesteddocument());
+                                if (header.getRequesteddocument().equals("/")) {
                                     boolean indexfound = false;
                                     bw.write("HTTP/1.1 200 OK\r\n");
                                     bw.write("Server: " + SERVERNAME + "\r\n");
@@ -376,7 +358,7 @@ public class Server {
                                     bw.write("\r\n");
                                     for (String file : config.getIndexfiles()) {
                                         if (fileExists(file) == 1) {
-                                            bw.write(processHTML(readFile(file), req));
+                                            bw.write(processHTML(readFile(file), header));
                                             indexfound = true;
                                             break;
                                         }
@@ -384,17 +366,17 @@ public class Server {
                                     if (!indexfound) {
                                         bw.write("<!doctype html>\n<html>\n<body>\n");
                                         bw.write("<center><h1>404 Not Found</h1></center>");
-                                        bw.write("<center><h3>File " + allargs[1].replace("..", "").replaceFirst("/", "") + " not found!</center></h3>");
+                                        bw.write("<center><h3>File " + header.getRequesteddocument().replace("..", "").replaceFirst("/", "") + " not found!</center></h3>");
                                     }
                                     System.out.printf("[%s] <= 200 OK\n", socket.getInetAddress().toString());
                                 } else {
-                                    int fileexist = fileExists(allargs[1]);
+                                    int fileexist = fileExists(header.getRequesteddocument());
                                     if (fileexist == 1) {
                                         bw.write("HTTP/1.1 200 OK\r\n");
                                         bw.write("Server: " + SERVERNAME + "\r\n");
                                         bw.write("");
                                         bw.write("\r\n");
-                                        bw.write(processHTML(readFile(allargs[1]), req));
+                                        bw.write(processHTML(readFile(header.getRequesteddocument()), header));
                                         System.out.printf("[%s] <= 200 OK\n", socket.getInetAddress().toString());
                                     } else if (fileexist == 2){
                                         bw.write("HTTP/1.1 403 Forbidden\r\n");
@@ -403,11 +385,11 @@ public class Server {
                                         bw.write("\r\n");
                                         bw.write("<!doctype html>\n<html>\n<body>\n");
                                         bw.write("<center><h1>403 Forbidden</h1></center>");
-                                        bw.write("<center><h3>You're not allowed to access " + allargs[1].replace("..", "").replaceFirst("/", "") + "!</center></h3>");
+                                        bw.write("<center><h3>You're not allowed to access " + header.getRequesteddocument().replace("..", "").replaceFirst("/", "") + "!</center></h3>");
                                         bw.write("\n</body>");
                                         bw.write("\n</html>");
                                         System.out.printf("[%s] <= 403 Forbidden\n", socket.getInetAddress().toString());
-                                        logError("[" + socket.getInetAddress().toString() + "] <= 403 Forbidden " + allargs[1]);
+                                        logError("[" + socket.getInetAddress().toString() + "] <= 403 Forbidden " + header.getRequesteddocument());
                                     } else {
                                         bw.write("HTTP/1.1 404 Not Found\r\n");
                                         bw.write("Server: " + SERVERNAME + "\r\n");
@@ -415,11 +397,11 @@ public class Server {
                                         bw.write("\r\n");
                                         bw.write("<!doctype html>\n<html>\n<body>\n");
                                         bw.write("<center><h1>404 Not Found</h1></center>");
-                                        bw.write("<center><h3>File " + allargs[1].replace("..", "").replaceFirst("/", "") + " not found!</center></h3>");
+                                        bw.write("<center><h3>File " + header.getRequesteddocument().replace("..", "").replaceFirst("/", "") + " not found!</center></h3>");
                                         bw.write("\n</body>");
                                         bw.write("\n</html>");
                                         System.out.printf("[%s] <= 404 Not Found\n", socket.getInetAddress().toString());
-                                        logError("[" + socket.getInetAddress().toString() + "] <= 403 Forbidden " + allargs[1]);
+                                        logError("[" + socket.getInetAddress().toString() + "] <= 403 Forbidden " + header.getRequesteddocument());
                                     }
                                 }
                                 break;
@@ -430,7 +412,7 @@ public class Server {
                                 bw.write("\r\n");
                                 bw.write("<!doctype html>\n<html>\n<body>\n");
                                 bw.write("<center><h1>400 Bad Request</h1></center>");
-                                bw.write("<center><h3>Request " + allargs[0] + " not supported</center></h3>");
+                                bw.write("<center><h3>Request " + header.getRequesttype() + " not supported</center></h3>");
                                 bw.write("\n</body>");
                                 bw.write("\n</html>");
                                 break;
