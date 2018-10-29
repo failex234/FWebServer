@@ -6,6 +6,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 
@@ -74,6 +75,24 @@ public class Server {
 
         this.SERVERNAME = config.getServername();
         this.wwwroot = config.getWwwroot();
+
+        File webroot = new File(wwwroot);
+        if (!webroot.exists()) {
+            Consolelogf("The wwwroot path \"%s\" doesn't exist. creating it for you...\n", webroot.getAbsolutePath());
+            webroot.mkdir();
+            File aboutfile = new File(wwwroot + "/about2.html");
+            String filecontents = new String(Base64.getDecoder().decode(BuiltIn.about2));
+
+            try {
+                BufferedWriter bw = new BufferedWriter(new FileWriter(aboutfile));
+                bw.write(filecontents);
+                bw.close();
+            }
+            catch (IOException e) {
+                e.printStackTrace();
+            }
+
+        }
 
     }
 
@@ -281,6 +300,14 @@ public class Server {
 
     }
 
+    private void Consolelog(String string) {
+        System.out.println("[LOG] " + string);
+    }
+
+    private void Consolelogf(String format, Object... objects) {
+        System.out.printf("[LOG] " + format, objects);
+    }
+
     public class IncomingThread implements Runnable {
 
         @Override
@@ -404,6 +431,7 @@ public class Server {
                         bw.close();
                         br.close();
                         socket.close();
+                        Thread.currentThread().interrupt();
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
