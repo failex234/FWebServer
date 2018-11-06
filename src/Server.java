@@ -217,7 +217,7 @@ public class Server {
     }
 
     /**
-     * 0 = not exist, 1 = exists, 2 = no permissions
+     * 0 = not exist, 1 = exists, 2 = no permissions, 3 = directory
      *
      * checks if a wanted file exists
      * @param filename the file to check
@@ -231,12 +231,66 @@ public class Server {
         File temp = new File(wwwroot + "/" + filename);
 
         if (!blacklist.contains(filename)) {
-            if (temp.exists()) {
+            if (temp.exists() && temp.isDirectory()) {
+                return 3;
+            } else if (temp.exists()){
                 return 1;
             }
             return 0;
         }
         return 2;
+    }
+
+    /**
+     * list al the files in a given directory
+     * @param path
+     * @param header
+     * @return
+     */
+    private String listFiles(String path, ClientHeader header) {
+        File[] filelist = (new File(wwwroot + "/" + path).listFiles());
+        StringBuilder html = new StringBuilder();
+        html.append("<html>\n\t<head>\n\t\t<title>Index of ").append(path).append("</title>\n\t</head>\n\t<body>\n");
+        html.append("\t\t<h1>Index of ").append(path).append("</h1>\n");
+        html.append("\t\t<table>\n");
+        html.append("\t\t\t<tr>\n\t\t\t\t<td style=\"width: 300px;\">Name</td><td style=\"width: 300px;\">Last modified</td><td style=\"width: 300px;\">Size</td>\n\t\t\t</tr>");
+        html.append("\n\t\t\t<tr>\n\t\t\t\t<td style=\"width: 300px;\"><a href=\"..\">..</a></td><td style=\"width: 300px;\"></td><td style=\"width: 300px;\"></td>\n\t\t\t</tr>");
+
+        for (File f : filelist) {
+            Date lastmodified = new Date(f.lastModified());
+            html.append("\n\t\t\t<tr>\n\t\t\t\t<td>").append("<a href=\"").append(path).append("/").append(f.getName()).append("\">").append(f.getName()).append("</a></td><td>").append(lastmodified.toString()).append("</td><td>").append(convertToNearestUnit(f.length())).append("</td>\n\t\t\t</tr>");
+        }
+        html.append("\n\t\t</table>");
+        html.append("\n\t</body>\n</html>");
+
+        return html.toString();
+    }
+
+    /**
+     * Converts the number of bytes into the correct unit
+     * @param size the number of bytes
+     * @return the correctly formatted file size
+     */
+    private String convertToNearestUnit(long size) {
+        StringBuilder endstring = new StringBuilder();
+        if (size > 99L && size < 100000L) {
+            endstring.append(String.format("%.2f",(double) size / 1000D));
+            endstring.append("K");
+        } else if(size > 99999L && size < 100000000L) {
+            endstring.append(String.format("%.2f",(double) size / 10000000D));
+            endstring.append("M");
+        } else if (size > 99999999L && size < 100000000000L) {
+            endstring.append(String.format("%.2f",(double) size / 1000000000D));
+            endstring.append("G");
+        } else if (size > 99999999999L && size < 100000000000000L) {
+            endstring.append(String.format("%.2f",(double) size / 10000000000000D));
+            endstring.append("T");
+        } else if (size > 99999999999999L && size < 100000000000000000L) {
+            endstring.append(String.format("%.2f",(double) size / 100000000000000000D));
+            endstring.append("P");
+        }
+
+        return endstring.toString();
     }
 
     /**
@@ -390,6 +444,14 @@ public class Server {
                                         bw.write("\n</html>");
                                         System.out.printf("[%s] <= 403 Forbidden\n", socket.getInetAddress().toString());
                                         logError("[" + socket.getInetAddress().toString() + "] <= 403 Forbidden " + header.getRequesteddocument());
+                                    } else if (fileexist == 3) {
+                                        bw.write("HTTP/1.1 200 OK\r\n");
+                                        bw.write("Server: " + SERVERNAME + "\r\n");
+                                        bw.write("");
+                                        bw.write("\r\n");
+                                        bw.write("<!doctype html>\n");
+                                        bw.write(listFiles(header.getRequesteddocument(), header));
+                                        System.out.printf("[%s] <= 200 OK\n", socket.getInetAddress().toString());
                                     } else {
                                         bw.write("HTTP/1.1 404 Not Found\r\n");
                                         bw.write("Server: " + SERVERNAME + "\r\n");
