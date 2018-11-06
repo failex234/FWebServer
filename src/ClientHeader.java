@@ -10,11 +10,12 @@ public class ClientHeader {
     private boolean headercorrupt = false;
 
     public ClientHeader(ArrayList<String> header) {
+        int line = 0;
         for (String elems : header) {
             //TODO Check for incomplete header
             try {
                 String[] temp = elems.split(" ");
-                if (temp[0].equals("GET") || temp[0].equals("POST")) {
+                if (line == 0) {
                     this.setRequesttype(temp[0]);
                     this.setRequesteddocument(temp[1]);
                     this.setVersion(temp[2].replace("HTTP/", ""));
@@ -29,6 +30,7 @@ public class ClientHeader {
             } catch (Exception e) {
                 this.setHeadercorrupt(true);
             }
+            line++;
         }
 
     }

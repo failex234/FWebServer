@@ -420,7 +420,8 @@ public class Server {
                                     if (!indexfound) {
                                         bw.write("<!doctype html>\n<html>\n<body>\n");
                                         bw.write("<center><h1>404 Not Found</h1></center>");
-                                        bw.write("<center><h3>File " + header.getRequesteddocument().replace("..", "").replaceFirst("/", "") + " not found!</center></h3>");
+                                        bw.write("<center><h3>The requested url " + header.getRequesteddocument().replace("..", "") + " was not found!</center></h3>");
+                                        bw.write("\n<center><hr>\n " + SERVERNAME + "/" + VERSION + " on " + System.getProperty("os.name") + " at " + header.getHost() + "</center>");
                                     }
                                     System.out.printf("[%s] <= 200 OK\n", socket.getInetAddress().toString());
                                 } else {
@@ -439,7 +440,8 @@ public class Server {
                                         bw.write("\r\n");
                                         bw.write("<!doctype html>\n<html>\n<body>\n");
                                         bw.write("<center><h1>403 Forbidden</h1></center>");
-                                        bw.write("<center><h3>You're not allowed to access " + header.getRequesteddocument().replace("..", "").replaceFirst("/", "") + "!</center></h3>");
+                                        bw.write("<center><h3>You're not allowed to access " + header.getRequesteddocument().replace("..", "") + "!</center></h3>");
+                                        bw.write("\n<center><hr>\n " + SERVERNAME + "/" + VERSION + " on " + System.getProperty("os.name") + " at " + header.getHost() + "</center>");
                                         bw.write("\n</body>");
                                         bw.write("\n</html>");
                                         System.out.printf("[%s] <= 403 Forbidden\n", socket.getInetAddress().toString());
@@ -459,7 +461,8 @@ public class Server {
                                         bw.write("\r\n");
                                         bw.write("<!doctype html>\n<html>\n<body>\n");
                                         bw.write("<center><h1>404 Not Found</h1></center>");
-                                        bw.write("<center><h3>File " + header.getRequesteddocument().replace("..", "").replaceFirst("/", "") + " not found!</center></h3>");
+                                        bw.write("<center><h3>The requested url " + header.getRequesteddocument().replace("..", "") + " was not found!</center></h3>");
+                                        bw.write("\n<center><hr>\n " + SERVERNAME + "/" + VERSION + " on " + System.getProperty("os.name") + " at " + header.getHost() + "</center>");
                                         bw.write("\n</body>");
                                         bw.write("\n</html>");
                                         System.out.printf("[%s] <= 404 Not Found\n", socket.getInetAddress().toString());
@@ -475,6 +478,7 @@ public class Server {
                                 bw.write("<!doctype html>\n<html>\n<body>\n");
                                 bw.write("<center><h1>400 Bad Request</h1></center>");
                                 bw.write("<center><h3>Request " + header.getRequesttype() + " not supported</center></h3>");
+                                bw.write("\n<center><hr>\n " + SERVERNAME + "/" + VERSION + " on " + System.getProperty("os.name") + " at " + header.getHost() + "</center>");
                                 bw.write("\n</body>");
                                 bw.write("\n</html>");
                                 break;
