@@ -14,7 +14,7 @@ public class Server {
 
     int port;
     private String SERVERNAME = "FWebServer";
-    private final String VERSION = "0.2.3";
+    private final String VERSION = "0.2.4";
     private ServerSocket mainsocket;
     private Thread incoming;
     private ArrayList<String> blacklist = new ArrayList<>();
@@ -38,6 +38,8 @@ public class Server {
     }
 
     //TODO check if config is valid / no entries are missing. and if necessary change to default values
+    //TODO config option to show version number of server on status pages / in headers
+    //TODO add a "silence" command line paramenter to to log access
 
     /**
      * Reads a existing config file or creates a new one
@@ -277,9 +279,9 @@ public class Server {
             html.append("\n\t\t\t<tr>\n\t\t\t\t<td>").append("<a href=\"").append(path).append(f.getName()).append("\">").append(f.getName()).append("</a></td><td>").append(lastmodified.toString()).append("</td><td>").append(convertToNearestUnit(f.length())).append("</td>\n\t\t\t</tr>");
         }
         html.append("\n\t\t</table>");
-        html.append("\n\t</body>\n</html>");
+        html.append("\n\t\t<hr>\n\t\t$(servername)/$(serverversion)\n\t</body>\n</html>");
 
-        return html.toString();
+        return processHTML(html.toString(), header);
     }
 
     /**
