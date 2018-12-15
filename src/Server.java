@@ -37,6 +37,8 @@ public class Server {
         start();
     }
 
+    //TODO check if config is valid / no entries are missing. and if necessary change to default values
+
     /**
      * Reads a existing config file or creates a new one
      */
@@ -93,6 +95,13 @@ public class Server {
                 e.printStackTrace();
             }
 
+        } else {
+            //Check if config is null
+            String status = config.isConfigCorrupt();
+            if (!status.equals("no")) {
+                System.err.println(status);
+                System.exit(1);
+            }
         }
 
     }

@@ -77,4 +77,22 @@ public class ServerConfig {
     public void setIndexfiles(ArrayList<String> indexfiles) {
         this.indexfiles = indexfiles;
     }
+
+    public String isConfigCorrupt() {
+        if (indexfiles == null) {
+            return "indexfile entry not found";
+        } else if (servername == null) {
+            return "servername entry not found";
+        } else if (wwwroot == null) {
+            return "wwwroot entry not found";
+        } else if (accesslog == null) {
+            return "accesslog entry not found";
+        } else if (errorlog == null) {
+            return "errorlog entry not found";
+        } else if (logfolder == null) {
+            return "logfolder entry not found";
+        } else {
+            return "no";
+        }
+    }
 }
