@@ -84,11 +84,17 @@ public class Server {
             Consolelogf("The wwwroot path \"%s\" doesn't exist. creating it for you...\n", webroot.getAbsolutePath());
             webroot.mkdir();
             File aboutfile = new File(wwwroot + "/about2.html");
+            File indexfile = new File(wwwroot + "/index.html");
             String filecontents = new String(Base64.getDecoder().decode(BuiltIn.about2));
+            String indexcontents = new String(Base64.getDecoder().decode(BuiltIn.index));
 
             try {
                 BufferedWriter bw = new BufferedWriter(new FileWriter(aboutfile));
                 bw.write(filecontents);
+                bw.close();
+
+                bw = new BufferedWriter(new FileWriter(indexfile));
+                bw.write(indexcontents);
                 bw.close();
             }
             catch (IOException e) {
@@ -256,6 +262,7 @@ public class Server {
      * @param header
      * @return
      */
+    //TODO Show directories first and don't show file size of directories
     private String listFiles(String path, ClientHeader header) {
         File[] filelist = (new File(wwwroot + "/" + path).listFiles());
         StringBuilder html = new StringBuilder();
@@ -267,7 +274,7 @@ public class Server {
 
         for (File f : filelist) {
             Date lastmodified = new Date(f.lastModified());
-            html.append("\n\t\t\t<tr>\n\t\t\t\t<td>").append("<a href=\"").append(path).append("/").append(f.getName()).append("\">").append(f.getName()).append("</a></td><td>").append(lastmodified.toString()).append("</td><td>").append(convertToNearestUnit(f.length())).append("</td>\n\t\t\t</tr>");
+            html.append("\n\t\t\t<tr>\n\t\t\t\t<td>").append("<a href=\"").append(path).append(f.getName()).append("\">").append(f.getName()).append("</a></td><td>").append(lastmodified.toString()).append("</td><td>").append(convertToNearestUnit(f.length())).append("</td>\n\t\t\t</tr>");
         }
         html.append("\n\t\t</table>");
         html.append("\n\t</body>\n</html>");
@@ -415,32 +422,21 @@ public class Server {
                                 logAccess("[" + socket.getInetAddress().toString() + "] GET " + header.getRequesteddocument());
                                 if (header.getRequesteddocument().equals("/")) {
                                     boolean indexfound = false;
-                                    String indexfile = "";
+                                    bw.write("HTTP/1.1 200 OK\r\n");
+                                    bw.write("Server: " + SERVERNAME + "\r\n");
+                                    bw.write("");
+                                    bw.write("\r\n");
                                     for (String file : config.getIndexfiles()) {
                                         if (fileExists(file) == 1) {
-                                            indexfile = file;
+                                            bw.write(processHTML(readFile(file), header));
                                             indexfound = true;
                                             break;
                                         }
                                     }
                                     if (!indexfound) {
-                                        bw.write("HTTP/1.1 404 Not Found\r\n");
-                                        bw.write("Server: " + SERVERNAME + "\r\n");
-                                        bw.write("");
-                                        bw.write("\r\n");
-                                        bw.write("<!doctype html>\n<html>\n<body>\n");
-                                        bw.write("<center><h1>404 Not Found</h1></center>");
-                                        bw.write("<center><h3>The requested url " + header.getRequesteddocument().replace("..", "") + " was not found!</center></h3>");
-                                        bw.write("\n<center><hr>\n " + SERVERNAME + "/" + VERSION + " on " + System.getProperty("os.name") + " at " + header.getHost() + "</center>");
-                                        System.out.printf("[%s] <= 404 Not Found\n", socket.getInetAddress().toString());
-                                    } else {
-                                        bw.write("HTTP/1.1 200 OK\r\n");
-                                        bw.write("Server: " + SERVERNAME + "\r\n");
-                                        bw.write("");
-                                        bw.write("\r\n");
-                                        bw.write(processHTML(readFile(indexfile), header));
-                                        System.out.printf("[%s] <= 200 OK\n", socket.getInetAddress().toString());
+                                        bw.write(listFiles(header.getRequesteddocument(),header));
                                     }
+                                    System.out.printf("[%s] <= 200 OK\n", socket.getInetAddress().toString());
                                 } else {
                                     int fileexist = fileExists(header.getRequesteddocument());
                                     if (fileexist == 1) {
