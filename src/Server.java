@@ -415,24 +415,32 @@ public class Server {
                                 logAccess("[" + socket.getInetAddress().toString() + "] GET " + header.getRequesteddocument());
                                 if (header.getRequesteddocument().equals("/")) {
                                     boolean indexfound = false;
-                                    bw.write("HTTP/1.1 200 OK\r\n");
-                                    bw.write("Server: " + SERVERNAME + "\r\n");
-                                    bw.write("");
-                                    bw.write("\r\n");
+                                    String indexfile = "";
                                     for (String file : config.getIndexfiles()) {
                                         if (fileExists(file) == 1) {
-                                            bw.write(processHTML(readFile(file), header));
+                                            indexfile = file;
                                             indexfound = true;
                                             break;
                                         }
                                     }
                                     if (!indexfound) {
+                                        bw.write("HTTP/1.1 404 Not Found\r\n");
+                                        bw.write("Server: " + SERVERNAME + "\r\n");
+                                        bw.write("");
+                                        bw.write("\r\n");
                                         bw.write("<!doctype html>\n<html>\n<body>\n");
                                         bw.write("<center><h1>404 Not Found</h1></center>");
                                         bw.write("<center><h3>The requested url " + header.getRequesteddocument().replace("..", "") + " was not found!</center></h3>");
                                         bw.write("\n<center><hr>\n " + SERVERNAME + "/" + VERSION + " on " + System.getProperty("os.name") + " at " + header.getHost() + "</center>");
+                                        System.out.printf("[%s] <= 404 Not Found\n", socket.getInetAddress().toString());
+                                    } else {
+                                        bw.write("HTTP/1.1 200 OK\r\n");
+                                        bw.write("Server: " + SERVERNAME + "\r\n");
+                                        bw.write("");
+                                        bw.write("\r\n");
+                                        bw.write(processHTML(readFile(indexfile), header));
+                                        System.out.printf("[%s] <= 200 OK\n", socket.getInetAddress().toString());
                                     }
-                                    System.out.printf("[%s] <= 200 OK\n", socket.getInetAddress().toString());
                                 } else {
                                     int fileexist = fileExists(header.getRequesteddocument());
                                     if (fileexist == 1) {
