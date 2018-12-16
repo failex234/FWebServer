@@ -18,7 +18,7 @@ public class ServerConfig {
         customkeywords = new HashMap<>();
         indexfiles = new ArrayList<>();
         indexfiles.add("index.html");
-        servername = "me.felixnaumann.fwebserver.FWebServer";
+        servername = "FWebServer";
         wwwroot = "wwwroot";
         accesslog = "logs/access.log";
         errorlog = "logs/error.log";

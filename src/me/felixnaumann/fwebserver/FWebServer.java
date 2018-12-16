@@ -38,9 +38,9 @@ public class FWebServer {
     }
 
     public static void usage() {
-        System.out.println("usage: me.felixnaumann.fwebserver.FWebServer <port>");
+        System.out.println("usage: FWebServer <port>");
         System.out.println("OR");
-        System.out.println("       me.felixnaumann.fwebserver.FWebServer <args> <port>");
+        System.out.println("       FWebServer <args> <port>");
         System.out.println("\narguments:");
         System.out.println("-s --silence      - Suppress the output of log messages");
     }

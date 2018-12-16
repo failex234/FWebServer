@@ -15,8 +15,8 @@ import java.util.HashMap;
 public class Server {
 
     int port;
-    private String SERVERNAME = "me.felixnaumann.fwebserver.FWebServer";
-    private final String VERSION = "0.2.4";
+    private String SERVERNAME = "FWebServer";
+    private final String VERSION = "0.3.0";
     private ServerSocket mainsocket;
     private Thread incoming;
     private ArrayList<String> blacklist = new ArrayList<>();
@@ -43,6 +43,7 @@ public class Server {
 
     //TODO check if config is valid / no entries are missing. and if necessary change to default values
     //TODO add a "silence" command line paramenter to to log access
+    //TODO: uniform method for setting the whole respond header
 
     /**
      * Reads a existing config file or creates a new one
@@ -411,7 +412,7 @@ public class Server {
 
                         if(header.isHeadercorrupt()) {
                             bw.write("HTTP/1.1 400 Bad Request\r\n");
-                            bw.write("me.felixnaumann.fwebserver.Server: " + SERVERNAME + "\r\n");
+                            bw.write("Server: " + SERVERNAME + "\r\n");
                             bw.write("");
                             bw.write("\r\n");
                             bw.write("<!doctype html>\n<html>\n<body>");
@@ -428,7 +429,7 @@ public class Server {
                                 if (header.getRequesteddocument().equals("/")) {
                                     boolean indexfound = false;
                                     bw.write("HTTP/1.1 200 OK\r\n");
-                                    bw.write("me.felixnaumann.fwebserver.Server: " + SERVERNAME + "\r\n");
+                                    bw.write("Server: " + SERVERNAME + "\r\n");
                                     bw.write("");
                                     bw.write("\r\n");
                                     for (String file : config.getIndexfiles()) {
@@ -446,14 +447,14 @@ public class Server {
                                     int fileexist = fileExists(header.getRequesteddocument());
                                     if (fileexist == 1) {
                                         bw.write("HTTP/1.1 200 OK\r\n");
-                                        bw.write("me.felixnaumann.fwebserver.Server: " + SERVERNAME + "\r\n");
+                                        bw.write("Server: " + SERVERNAME + "\r\n");
                                         bw.write("");
                                         bw.write("\r\n");
                                         bw.write(processHTML(readFile(header.getRequesteddocument()), header));
                                         Consolelogf("[%s] <= 200 OK\n", socket.getInetAddress().toString());
                                     } else if (fileexist == 2){
                                         bw.write("HTTP/1.1 403 Forbidden\r\n");
-                                        bw.write("me.felixnaumann.fwebserver.Server: " + SERVERNAME + "\r\n");
+                                        bw.write("Server: " + SERVERNAME + "\r\n");
                                         bw.write("");
                                         bw.write("\r\n");
                                         bw.write("<!doctype html>\n<html>\n<body>\n");
@@ -466,7 +467,7 @@ public class Server {
                                         logError("[" + socket.getInetAddress().toString() + "] <= 403 Forbidden " + header.getRequesteddocument());
                                     } else if (fileexist == 3) {
                                         bw.write("HTTP/1.1 200 OK\r\n");
-                                        bw.write("me.felixnaumann.fwebserver.Server: " + SERVERNAME + "\r\n");
+                                        bw.write("Server: " + SERVERNAME + "\r\n");
                                         bw.write("");
                                         bw.write("\r\n");
                                         bw.write("<!doctype html>\n");
@@ -474,7 +475,7 @@ public class Server {
                                         Consolelogf("[%s] <= 200 OK\n", socket.getInetAddress().toString());
                                     } else {
                                         bw.write("HTTP/1.1 404 Not Found\r\n");
-                                        bw.write("me.felixnaumann.fwebserver.Server: " + SERVERNAME + "\r\n");
+                                        bw.write("Server: " + SERVERNAME + "\r\n");
                                         bw.write("");
                                         bw.write("\r\n");
                                         bw.write("<!doctype html>\n<html>\n<body>\n");
@@ -484,13 +485,13 @@ public class Server {
                                         bw.write("\n</body>");
                                         bw.write("\n</html>");
                                         Consolelogf("[%s] <= 404 Not Found\n", socket.getInetAddress().toString());
-                                        logError("[" + socket.getInetAddress().toString() + "] <= 403 Forbidden " + header.getRequesteddocument());
+                                        logError("[" + socket.getInetAddress().toString() + "] <= 404 Not Found " + header.getRequesteddocument());
                                     }
                                 }
                                 break;
                             default:
                                 bw.write("HTTP/1.1 400 Bad Request\r\n");
-                                bw.write("me.felixnaumann.fwebserver.Server: " + SERVERNAME + "\r\n");
+                                bw.write("Server: " + SERVERNAME + "\r\n");
                                 bw.write("");
                                 bw.write("\r\n");
                                 bw.write("<!doctype html>\n<html>\n<body>\n");
