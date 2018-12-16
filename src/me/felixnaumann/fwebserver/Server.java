@@ -41,10 +41,7 @@ public class Server {
         start();
     }
 
-    //TODO check if config is valid / no entries are missing. and if necessary change to default values
-    //TODO add a "silence" command line paramenter to to log access
     //TODO: uniform method for setting the whole respond header
-
     /**
      * Reads a existing config file or creates a new one
      */
@@ -262,6 +259,18 @@ public class Server {
         return 2;
     }
 
+    private String getParentDirectory(String currdocument) {
+        int slashpos = 0;
+        for (int i = currdocument.length() - 1; i > 0; i--) {
+            if (currdocument.charAt(i) == '/') {
+                slashpos = i;
+                break;
+            }
+        }
+        if (slashpos != 0) return currdocument.substring(0, slashpos);
+        return "..";
+    }
+
     /**
      * list al the files in a given directory
      * @param path
@@ -276,11 +285,18 @@ public class Server {
         html.append("\t\t<h1>Index of ").append(path).append("</h1>\n");
         html.append("\t\t<table>\n");
         html.append("\t\t\t<tr>\n\t\t\t\t<td style=\"width: 300px;\">Name</td><td style=\"width: 300px;\">Last modified</td><td style=\"width: 300px;\">Size</td>\n\t\t\t</tr>");
-        html.append("\n\t\t\t<tr>\n\t\t\t\t<td style=\"width: 300px;\"><a href=\"..\">..</a></td><td style=\"width: 300px;\"></td><td style=\"width: 300px;\"></td>\n\t\t\t</tr>");
+        html.append("\n\t\t\t<tr>\n\t\t\t\t<td style=\"width: 300px;\"><a href=\"").append(getParentDirectory(header.getRequesteddocument())).append("\">..</a></td><td style=\"width: 300px;\"></td><td style=\"width: 300px;\"></td>\n\t\t\t</tr>");
+
+        for (File dir : filelist) {
+            if (dir.isFile()) continue;
+            Date lastmodified = new Date(dir.lastModified());
+            html.append("\n\t\t\t<tr>\n\t\t\t\t<td>").append("<a href=\"").append(path).append("/").append(dir.getName()).append("\">").append(dir.getName()).append("</a></td><td>").append(lastmodified.toString()).append("</td><td>").append("</td>\n\t\t\t</tr>");
+        }
 
         for (File f : filelist) {
+            if (f.isDirectory()) continue;
             Date lastmodified = new Date(f.lastModified());
-            html.append("\n\t\t\t<tr>\n\t\t\t\t<td>").append("<a href=\"").append(path).append(f.getName()).append("\">").append(f.getName()).append("</a></td><td>").append(lastmodified.toString()).append("</td><td>").append(convertToNearestUnit(f.length())).append("</td>\n\t\t\t</tr>");
+            html.append("\n\t\t\t<tr>\n\t\t\t\t<td>").append("<a href=\"").append(path).append("/").append(f.getName()).append("\">").append(f.getName()).append("</a></td><td>").append(lastmodified.toString()).append("</td><td>").append(convertToNearestUnit(f.length())).append("</td>\n\t\t\t</tr>");
         }
         html.append("\n\t\t</table>");
         html.append("\n\t\t<hr>\n\t\t$(servername)"+ (!config.isVersionSuppressed() ? "/" + VERSION : "")+"\n\t</body>\n</html>");
@@ -295,24 +311,35 @@ public class Server {
      */
     private String convertToNearestUnit(long size) {
         StringBuilder endstring = new StringBuilder();
+        double convertedsize;
         if (size > 99L && size < 100000L) {
-            endstring.append(String.format("%.2f",(double) size / 1000D));
+            convertedsize = (double) size / 1000D;
+            endstring.append("SIZE");
             endstring.append("K");
         } else if(size > 99999L && size < 100000000L) {
-            endstring.append(String.format("%.2f",(double) size / 10000000D));
+            convertedsize = (double) size / 10000000D;
+            endstring.append("SIZE");
             endstring.append("M");
         } else if (size > 99999999L && size < 100000000000L) {
-            endstring.append(String.format("%.2f",(double) size / 1000000000D));
+            convertedsize = (double) size / 1000000000D;
+            endstring.append("SIZE");
             endstring.append("G");
         } else if (size > 99999999999L && size < 100000000000000L) {
-            endstring.append(String.format("%.2f",(double) size / 10000000000000D));
+            convertedsize = (double) size / 10000000000000D;
+            endstring.append("SIZE");
             endstring.append("T");
         } else if (size > 99999999999999L && size < 100000000000000000L) {
-            endstring.append(String.format("%.2f",(double) size / 100000000000000000D));
+            convertedsize = (double) size / 100000000000000000D;
+            endstring.append("SIZE");
             endstring.append("P");
+        } else {
+            convertedsize = (double) size;
+            endstring.append("SIZE");
+            endstring.append("B");
         }
 
-        return endstring.toString();
+        if (convertedsize == (long) convertedsize) return endstring.toString().replace("SIZE", String.format("%d", (int) convertedsize));
+        return endstring.toString().replace("SIZE", String.format("%.2f", convertedsize));
     }
 
     /**
@@ -426,15 +453,15 @@ public class Server {
                             case "GET":
                                 Consolelogf("[%s] GET %s\n", socket.getInetAddress().toString(), header.getRequesteddocument());
                                 logAccess("[" + socket.getInetAddress().toString() + "] GET " + header.getRequesteddocument());
-                                if (header.getRequesteddocument().equals("/")) {
+                                if (header.getRequesteddocument().equals("/") || fileExists(header.getRequesteddocument()) == 3) {
                                     boolean indexfound = false;
                                     bw.write("HTTP/1.1 200 OK\r\n");
                                     bw.write("Server: " + SERVERNAME + "\r\n");
                                     bw.write("");
                                     bw.write("\r\n");
                                     for (String file : config.getIndexfiles()) {
-                                        if (fileExists(file) == 1) {
-                                            bw.write(processHTML(readFile(file), header));
+                                        if (fileExists(header.getRequesteddocument() + "/" + file) == 1) {
+                                            bw.write(processHTML(readFile(header.getRequesteddocument() + "/" + file), header));
                                             indexfound = true;
                                             break;
                                         }

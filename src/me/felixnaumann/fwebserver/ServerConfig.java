@@ -107,4 +107,5 @@ public class ServerConfig {
     public void setSuppressversion(boolean suppressversion) {
         this.suppressversion = suppressversion;
     }
+
 }
