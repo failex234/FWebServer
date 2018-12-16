@@ -1,2 +1,2 @@
-# me.felixnaumann.fwebserver.FWebServer
+# FWebServer
 Simple WIP web server written in Java
