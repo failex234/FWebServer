@@ -1,4 +1,4 @@
-import java.util.ArrayList;
+package me.felixnaumann.fwebserver;
 
 public interface GenericServerRunnable {
     String run(ClientHeader header);

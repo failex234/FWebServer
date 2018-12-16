@@ -1,3 +1,5 @@
+package me.felixnaumann.fwebserver;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -13,7 +15,7 @@ import java.util.HashMap;
 public class Server {
 
     int port;
-    private String SERVERNAME = "FWebServer";
+    private String SERVERNAME = "me.felixnaumann.fwebserver.FWebServer";
     private final String VERSION = "0.2.4";
     private ServerSocket mainsocket;
     private Thread incoming;
@@ -25,20 +27,21 @@ public class Server {
     private File configfile;
     private Gson gsoninstance;
     private ServerConfig config;
+    private boolean silenced;
 
     String wwwroot;
 
 
-    Server(int port) {
+    Server(int port, boolean silenced) {
         prepareConfig();
         prepareLog();
         prepareHTMLProcessor();
         this.port = port;
+        this.silenced = silenced;
         start();
     }
 
     //TODO check if config is valid / no entries are missing. and if necessary change to default values
-    //TODO config option to show version number of server on status pages / in headers
     //TODO add a "silence" command line paramenter to to log access
 
     /**
@@ -279,7 +282,7 @@ public class Server {
             html.append("\n\t\t\t<tr>\n\t\t\t\t<td>").append("<a href=\"").append(path).append(f.getName()).append("\">").append(f.getName()).append("</a></td><td>").append(lastmodified.toString()).append("</td><td>").append(convertToNearestUnit(f.length())).append("</td>\n\t\t\t</tr>");
         }
         html.append("\n\t\t</table>");
-        html.append("\n\t\t<hr>\n\t\t$(servername)/$(serverversion)\n\t</body>\n</html>");
+        html.append("\n\t\t<hr>\n\t\t$(servername)"+ (!config.isVersionSuppressed() ? "/" + VERSION : "")+"\n\t</body>\n</html>");
 
         return processHTML(html.toString(), header);
     }
@@ -355,11 +358,11 @@ public class Server {
     }
 
     private void Consolelog(String string) {
-        System.out.println("[LOG] " + string);
+        if (!silenced) System.out.println("[LOG] " + string);
     }
 
     private void Consolelogf(String format, Object... objects) {
-        System.out.printf("[LOG] " + format, objects);
+        if (!silenced) System.out.printf("[LOG] " + format, objects);
     }
 
     public class IncomingThread implements Runnable {
@@ -408,7 +411,7 @@ public class Server {
 
                         if(header.isHeadercorrupt()) {
                             bw.write("HTTP/1.1 400 Bad Request\r\n");
-                            bw.write("Server: " + SERVERNAME + "\r\n");
+                            bw.write("me.felixnaumann.fwebserver.Server: " + SERVERNAME + "\r\n");
                             bw.write("");
                             bw.write("\r\n");
                             bw.write("<!doctype html>\n<html>\n<body>");
@@ -420,12 +423,12 @@ public class Server {
 
                         switch (header.getRequesttype()) {
                             case "GET":
-                                System.out.printf("[%s] GET %s\n", socket.getInetAddress().toString(), header.getRequesteddocument());
+                                Consolelogf("[%s] GET %s\n", socket.getInetAddress().toString(), header.getRequesteddocument());
                                 logAccess("[" + socket.getInetAddress().toString() + "] GET " + header.getRequesteddocument());
                                 if (header.getRequesteddocument().equals("/")) {
                                     boolean indexfound = false;
                                     bw.write("HTTP/1.1 200 OK\r\n");
-                                    bw.write("Server: " + SERVERNAME + "\r\n");
+                                    bw.write("me.felixnaumann.fwebserver.Server: " + SERVERNAME + "\r\n");
                                     bw.write("");
                                     bw.write("\r\n");
                                     for (String file : config.getIndexfiles()) {
@@ -438,62 +441,62 @@ public class Server {
                                     if (!indexfound) {
                                         bw.write(listFiles(header.getRequesteddocument(),header));
                                     }
-                                    System.out.printf("[%s] <= 200 OK\n", socket.getInetAddress().toString());
+                                    Consolelogf("[%s] <= 200 OK\n", socket.getInetAddress().toString());
                                 } else {
                                     int fileexist = fileExists(header.getRequesteddocument());
                                     if (fileexist == 1) {
                                         bw.write("HTTP/1.1 200 OK\r\n");
-                                        bw.write("Server: " + SERVERNAME + "\r\n");
+                                        bw.write("me.felixnaumann.fwebserver.Server: " + SERVERNAME + "\r\n");
                                         bw.write("");
                                         bw.write("\r\n");
                                         bw.write(processHTML(readFile(header.getRequesteddocument()), header));
-                                        System.out.printf("[%s] <= 200 OK\n", socket.getInetAddress().toString());
+                                        Consolelogf("[%s] <= 200 OK\n", socket.getInetAddress().toString());
                                     } else if (fileexist == 2){
                                         bw.write("HTTP/1.1 403 Forbidden\r\n");
-                                        bw.write("Server: " + SERVERNAME + "\r\n");
+                                        bw.write("me.felixnaumann.fwebserver.Server: " + SERVERNAME + "\r\n");
                                         bw.write("");
                                         bw.write("\r\n");
                                         bw.write("<!doctype html>\n<html>\n<body>\n");
                                         bw.write("<center><h1>403 Forbidden</h1></center>");
                                         bw.write("<center><h3>You're not allowed to access " + header.getRequesteddocument().replace("..", "") + "!</center></h3>");
-                                        bw.write("\n<center><hr>\n " + SERVERNAME + "/" + VERSION + " on " + System.getProperty("os.name") + " at " + header.getHost() + "</center>");
+                                        bw.write("\n<center><hr>\n " + SERVERNAME + (!config.isVersionSuppressed() ? "/" + VERSION : "") + " on " + System.getProperty("os.name") + " at " + header.getHost() + "</center>");
                                         bw.write("\n</body>");
                                         bw.write("\n</html>");
-                                        System.out.printf("[%s] <= 403 Forbidden\n", socket.getInetAddress().toString());
+                                        Consolelogf("[%s] <= 403 Forbidden\n", socket.getInetAddress().toString());
                                         logError("[" + socket.getInetAddress().toString() + "] <= 403 Forbidden " + header.getRequesteddocument());
                                     } else if (fileexist == 3) {
                                         bw.write("HTTP/1.1 200 OK\r\n");
-                                        bw.write("Server: " + SERVERNAME + "\r\n");
+                                        bw.write("me.felixnaumann.fwebserver.Server: " + SERVERNAME + "\r\n");
                                         bw.write("");
                                         bw.write("\r\n");
                                         bw.write("<!doctype html>\n");
                                         bw.write(listFiles(header.getRequesteddocument(), header));
-                                        System.out.printf("[%s] <= 200 OK\n", socket.getInetAddress().toString());
+                                        Consolelogf("[%s] <= 200 OK\n", socket.getInetAddress().toString());
                                     } else {
                                         bw.write("HTTP/1.1 404 Not Found\r\n");
-                                        bw.write("Server: " + SERVERNAME + "\r\n");
+                                        bw.write("me.felixnaumann.fwebserver.Server: " + SERVERNAME + "\r\n");
                                         bw.write("");
                                         bw.write("\r\n");
                                         bw.write("<!doctype html>\n<html>\n<body>\n");
                                         bw.write("<center><h1>404 Not Found</h1></center>");
                                         bw.write("<center><h3>The requested url " + header.getRequesteddocument().replace("..", "") + " was not found!</center></h3>");
-                                        bw.write("\n<center><hr>\n " + SERVERNAME + "/" + VERSION + " on " + System.getProperty("os.name") + " at " + header.getHost() + "</center>");
+                                        bw.write("\n<center><hr>\n " + SERVERNAME + (!config.isVersionSuppressed() ? "/" + VERSION : "") + " on " + System.getProperty("os.name") + " at " + header.getHost() + "</center>");
                                         bw.write("\n</body>");
                                         bw.write("\n</html>");
-                                        System.out.printf("[%s] <= 404 Not Found\n", socket.getInetAddress().toString());
+                                        Consolelogf("[%s] <= 404 Not Found\n", socket.getInetAddress().toString());
                                         logError("[" + socket.getInetAddress().toString() + "] <= 403 Forbidden " + header.getRequesteddocument());
                                     }
                                 }
                                 break;
                             default:
                                 bw.write("HTTP/1.1 400 Bad Request\r\n");
-                                bw.write("Server: " + SERVERNAME + "\r\n");
+                                bw.write("me.felixnaumann.fwebserver.Server: " + SERVERNAME + "\r\n");
                                 bw.write("");
                                 bw.write("\r\n");
                                 bw.write("<!doctype html>\n<html>\n<body>\n");
                                 bw.write("<center><h1>400 Bad Request</h1></center>");
                                 bw.write("<center><h3>Request " + header.getRequesttype() + " not supported</center></h3>");
-                                bw.write("\n<center><hr>\n " + SERVERNAME + "/" + VERSION + " on " + System.getProperty("os.name") + " at " + header.getHost() + "</center>");
+                                bw.write("\n<center><hr>\n " + SERVERNAME + (!config.isVersionSuppressed() ? "/" + VERSION : "") + " on " + System.getProperty("os.name") + " at " + header.getHost() + "</center>");
                                 bw.write("\n</body>");
                                 bw.write("\n</html>");
                                 break;

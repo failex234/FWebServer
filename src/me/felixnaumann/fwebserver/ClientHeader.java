@@ -1,3 +1,5 @@
+package me.felixnaumann.fwebserver;
+
 import java.util.ArrayList;
 
 public class ClientHeader {

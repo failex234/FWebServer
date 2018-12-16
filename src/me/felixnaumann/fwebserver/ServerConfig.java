@@ -1,3 +1,5 @@
+package me.felixnaumann.fwebserver;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -10,16 +12,18 @@ public class ServerConfig {
     private String accesslog;
     private String errorlog;
     private String logfolder;
+    private boolean suppressversion;
 
     void createNewConfig() {
         customkeywords = new HashMap<>();
         indexfiles = new ArrayList<>();
         indexfiles.add("index.html");
-        servername = "FWebServer";
+        servername = "me.felixnaumann.fwebserver.FWebServer";
         wwwroot = "wwwroot";
         accesslog = "logs/access.log";
         errorlog = "logs/error.log";
         logfolder = "logs";
+        suppressversion = false;
     }
 
     public String getServername() {
@@ -94,5 +98,13 @@ public class ServerConfig {
         } else {
             return "no";
         }
+    }
+
+    public boolean isVersionSuppressed() {
+        return suppressversion;
+    }
+
+    public void setSuppressversion(boolean suppressversion) {
+        this.suppressversion = suppressversion;
     }
 }
