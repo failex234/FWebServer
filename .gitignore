@@ -2,3 +2,5 @@ logs/*
 out/
 *.iml
 .idea/
+wwwroot/
+server.json
