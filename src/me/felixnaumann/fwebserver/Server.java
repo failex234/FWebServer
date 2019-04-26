@@ -42,6 +42,7 @@ public class Server {
 
     Server(int port, boolean silenced) {
         currdir = "";
+        wantedfilemime = "text/html";
         httpstatusCodes.put(200, "OK");
         httpstatusCodes.put(201, "Created");
         httpstatusCodes.put(202, "Accepted");
@@ -441,17 +442,24 @@ public class Server {
         if (code != null) {
             bw.write("HTTP/1.1 " + status + " " + code + "\r\n");
             bw.write("Server: " + SERVERNAME + "\r\n");
-            bw.write("Content-Type: " + wantedfilemime + "\r\n");
 
+            bw.write("Content-Type: " + wantedfilemime + "\r\n");
             SimpleDateFormat sdf = new SimpleDateFormat("EE, dd MMM YYYY HH:mm:ss zz", Locale.ENGLISH);
-            bw.write("Date: " + sdf.format(wantedfileLastModified) + "\r\n")
-            ;
+
+            bw.write("Date: " + sdf.format(new Date()) + "\r\n");
+            if (wantedfileLastModified != null) {
+                bw.write("Last-Modified: " + sdf.format(wantedfileLastModified) + "\r\n");
+            }
+
             bw.write("");
             bw.write("\r\n");
             for(String resp : response) {
                 bw.write(resp);
             }
         }
+
+        wantedfilemime = "text/html";
+        wantedfileLastModified = null;
     }
 
     public class IncomingThread implements Runnable {
@@ -499,15 +507,12 @@ public class Server {
                         ClientHeader header = new ClientHeader(req);
 
                         if(header.isHeadercorrupt()) {
-                            bw.write("HTTP/1.1 400 Bad Request\r\n");
-                            bw.write("Server: " + SERVERNAME + "\r\n");
-                            bw.write("");
-                            bw.write("\r\n");
-                            bw.write("<!doctype html>\n<html>\n<body>");
-                            bw.write("<center><h1>400 Bad Request</h1></center>");
-                            bw.write("<center><h3>Invalid request header!/center></h3>");
-                            bw.write("</body>");
-                            bw.write("</html>");
+                            writeResponse(bw, 400,
+                            "<!doctype html>\n<html>\n<body>",
+                            "<center><h1>400 Bad Request</h1></center>",
+                            "<center><h3>Invalid request header!/center></h3>",
+                            "</body>",
+                            "</html>");
                         }
 
                         switch (header.getRequesttype()) {
@@ -516,20 +521,19 @@ public class Server {
                                 logAccess("[" + socket.getInetAddress().toString() + "] GET " + header.getRequesteddocument());
                                 if (header.getRequesteddocument().equals("/") || fileExists(header.getRequesteddocument()) == 3) {
                                     boolean indexfound = false;
-                                    bw.write("HTTP/1.1 200 OK\r\n");
-                                    bw.write("Server: " + SERVERNAME + "\r\n");
-                                    bw.write("");
-                                    bw.write("\r\n");
+                                    String contents = "";
                                     for (String file : config.getIndexfiles()) {
                                         if (fileExists(header.getRequesteddocument() + "/" + file) == 1) {
-                                            bw.write(processHTML(readFile(header.getRequesteddocument() + "/" + file), header));
+                                            contents = processHTML(readFile(header.getRequesteddocument() + "/" + file), header);
                                             indexfound = true;
                                             break;
                                         }
                                     }
                                     if (!indexfound) {
-                                        bw.write(listFiles(header.getRequesteddocument(),header));
+                                        contents = listFiles(header.getRequesteddocument(),header);
                                     }
+
+                                    writeResponse(bw, 200, contents);
                                     Consolelogf("[%s] <= 200 OK\n", socket.getInetAddress().toString());
                                 } else {
                                     int fileexist = fileExists(header.getRequesteddocument());
