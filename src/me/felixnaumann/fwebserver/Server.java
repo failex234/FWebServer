@@ -7,10 +7,9 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.Date;
-import java.util.HashMap;
+import java.nio.file.Files;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 public class Server {
 
@@ -19,9 +18,13 @@ public class Server {
     private final String VERSION = "0.3.0";
     private ServerSocket mainsocket;
     private Thread incoming;
+
     private ArrayList<String> blacklist = new ArrayList<>();
     private ArrayList<String> indexfiles = new ArrayList<>();
+
     private HashMap<String, GenericServerRunnable> specialkeywords = new HashMap<>();
+    private HashMap<Integer, String> httpstatusCodes = new HashMap<>();
+
     private File accesslog;
     private File errorlog;
     private File configfile;
@@ -30,9 +33,33 @@ public class Server {
     private boolean silenced;
 
     String wwwroot;
+    String currdir;
+
+    File wantedfile;
+    String wantedfilemime;
+    Date wantedfileLastModified;
 
 
     Server(int port, boolean silenced) {
+        currdir = "";
+        httpstatusCodes.put(200, "OK");
+        httpstatusCodes.put(201, "Created");
+        httpstatusCodes.put(202, "Accepted");
+        httpstatusCodes.put(204, "No Centent");
+        httpstatusCodes.put(205, "Reset Content");
+        httpstatusCodes.put(206, "Partial Content");
+        httpstatusCodes.put(301, "Moved Permanently");
+        httpstatusCodes.put(302, "Found (Moved Temporarily)");
+        httpstatusCodes.put(304, "Not Modified");
+        httpstatusCodes.put(400, "Bad Request");
+        httpstatusCodes.put(401, "Unauthorized");
+        httpstatusCodes.put(403, "Forbidden");
+        httpstatusCodes.put(404, "Not Found");
+        httpstatusCodes.put(411, "Length Required");
+        httpstatusCodes.put(413, "Request Entity Too Large");
+        httpstatusCodes.put(500, "Internal Server Error");
+        httpstatusCodes.put(501, "Not Implemented");
+
         prepareConfig();
         prepareLog();
         prepareHTMLProcessor();
@@ -121,21 +148,21 @@ public class Server {
      * result of each function.
      */
     private void prepareHTMLProcessor() {
-        specialkeywords.put("$(useragent)", ClientHeader::getUseragent);
-        specialkeywords.put("$(serverversion)", header -> VERSION);
-        specialkeywords.put("$(servername)", header -> SERVERNAME);
-        specialkeywords.put("$(jreversion)", header -> System.getProperty("java.version"));
-        specialkeywords.put("$(osname)", header -> System.getProperty("os.name") + " " + System.getProperty("os.version") + " " + System.getProperty("os.arch"));
-        specialkeywords.put("$(username)", header -> System.getProperty("user.name"));
-        specialkeywords.put("$(accesslogpath)", header -> accesslog.getAbsolutePath());
-        specialkeywords.put("$(errorlogpath)", header -> errorlog.getAbsolutePath());
-        specialkeywords.put("$(configfilepath)", header -> configfile.getAbsolutePath());
-        specialkeywords.put("$(wwwrootpath)", header -> (new File(wwwroot).getAbsolutePath()));
-        specialkeywords.put("$(today)", header -> (new Date()).toString());
-        specialkeywords.put("$(headertype)", ClientHeader::getRequesttype);
-        specialkeywords.put("$(headerversion)", ClientHeader::getVersion);
-        specialkeywords.put("$(headerhost)", ClientHeader::getHost);
-        specialkeywords.put("$(compiledate)", new GenericServerRunnable() {
+        specialkeywords.put("useragent", ClientHeader::getUseragent);
+        specialkeywords.put("serverversion", header -> VERSION);
+        specialkeywords.put("servername", header -> SERVERNAME);
+        specialkeywords.put("jreversion", header -> System.getProperty("java.version"));
+        specialkeywords.put("osname", header -> System.getProperty("os.name") + " " + System.getProperty("os.version") + " " + System.getProperty("os.arch"));
+        specialkeywords.put("username", header -> System.getProperty("user.name"));
+        specialkeywords.put("accesslogpath", header -> accesslog.getAbsolutePath());
+        specialkeywords.put("errorlogpath", header -> errorlog.getAbsolutePath());
+        specialkeywords.put("configfilepath", header -> configfile.getAbsolutePath());
+        specialkeywords.put("wwwrootpath", header -> (new File(wwwroot).getAbsolutePath()));
+        specialkeywords.put("today", header -> (new Date()).toString());
+        specialkeywords.put("headertype", ClientHeader::getRequesttype);
+        specialkeywords.put("headerversion", ClientHeader::getVersion);
+        specialkeywords.put("headerhost", ClientHeader::getHost);
+        specialkeywords.put("compiledate", new GenericServerRunnable() {
             @Override
             public String run(ClientHeader header) {
                 try {
@@ -151,7 +178,7 @@ public class Server {
         for (String key : config.getCustomkeywords().keySet()) {
             specialkeywords.put(key, header -> config.getCustomkeywords().get(key));
         }
-        specialkeywords.put("$(keywordlist)", header -> {
+        specialkeywords.put("keywordlist", header -> {
             StringBuilder endstring = new StringBuilder();
 
             for (String keys : specialkeywords.keySet()) {
@@ -241,17 +268,25 @@ public class Server {
      * @param filename the file to check
      * @return status code of the file
      */
-    private int fileExists(String filename) {
+    private int fileExists(String filename) throws IOException {
         if (filename.startsWith("..") || filename.startsWith("/")) {
             filename = filename.replace("..", "").replaceFirst("/", "");
         }
 
-        File temp = new File(wwwroot + "/" + filename);
+        File temp = new File( wwwroot + "/" + filename);
+        File temp2 = new File(currdir + "/" + filename);
 
         if (!blacklist.contains(filename)) {
-            if (temp.exists() && temp.isDirectory()) {
+            if ((temp.exists() && temp.isDirectory()) || (temp2.exists() && temp2.isDirectory())) {
+                if (temp.exists()) currdir = temp.getAbsolutePath();
+                else currdir = temp2.getAbsolutePath();
                 return 3;
-            } else if (temp.exists()){
+            } else if (temp.exists() || temp2.exists()){
+                if (temp.exists()) wantedfile = new File(temp.getAbsolutePath());
+                else wantedfile = new File(temp2.getAbsolutePath());
+
+                wantedfilemime = Files.probeContentType(wantedfile.toPath());;
+                wantedfileLastModified = new Date(wantedfile.lastModified());
                 return 1;
             }
             return 0;
@@ -350,7 +385,7 @@ public class Server {
      */
     private String processHTML(String rawhtml, ClientHeader header) {
         for(String keys : specialkeywords.keySet()) {
-            rawhtml = rawhtml.replace(keys, specialkeywords.get(keys).run(header));
+            rawhtml = rawhtml.replace("$(" + keys + ")", specialkeywords.get(keys).run(header));
         }
         return rawhtml;
     }
@@ -366,7 +401,7 @@ public class Server {
             filename = filename.replaceFirst("/", "").replace("..", "");
         }
 
-        File toberead = new File(wwwroot + "/" + filename);
+        File toberead = wantedfile;
         StringBuilder tempstring = new StringBuilder();
 
         try {
@@ -391,6 +426,32 @@ public class Server {
 
     private void Consolelogf(String format, Object... objects) {
         if (!silenced) System.out.printf("[LOG] " + format, objects);
+    }
+
+    /**
+     * Common method to write the response header
+     * @param bw The Buffered Writer to write to
+     * @param status the http response status code
+     * @param response the text that should also get sent in the response
+     * @throws IOException
+     */
+    private void writeResponse(BufferedWriter bw, int status, String... response) throws IOException {
+        String code = httpstatusCodes.get(status);
+
+        if (code != null) {
+            bw.write("HTTP/1.1 " + status + " " + code + "\r\n");
+            bw.write("Server: " + SERVERNAME + "\r\n");
+            bw.write("Content-Type: " + wantedfilemime + "\r\n");
+
+            SimpleDateFormat sdf = new SimpleDateFormat("EE, dd MMM YYYY HH:mm:ss zz", Locale.ENGLISH);
+            bw.write("Date: " + sdf.format(wantedfileLastModified) + "\r\n")
+            ;
+            bw.write("");
+            bw.write("\r\n");
+            for(String resp : response) {
+                bw.write(resp);
+            }
+        }
     }
 
     public class IncomingThread implements Runnable {
@@ -473,60 +534,47 @@ public class Server {
                                 } else {
                                     int fileexist = fileExists(header.getRequesteddocument());
                                     if (fileexist == 1) {
-                                        bw.write("HTTP/1.1 200 OK\r\n");
-                                        bw.write("Server: " + SERVERNAME + "\r\n");
-                                        bw.write("");
-                                        bw.write("\r\n");
-                                        bw.write(processHTML(readFile(header.getRequesteddocument()), header));
+                                        writeResponse(bw, 200,
+                                        processHTML(readFile(header.getRequesteddocument()), header));
                                         Consolelogf("[%s] <= 200 OK\n", socket.getInetAddress().toString());
                                     } else if (fileexist == 2){
-                                        bw.write("HTTP/1.1 403 Forbidden\r\n");
-                                        bw.write("Server: " + SERVERNAME + "\r\n");
-                                        bw.write("");
-                                        bw.write("\r\n");
-                                        bw.write("<!doctype html>\n<html>\n<body>\n");
-                                        bw.write("<center><h1>403 Forbidden</h1></center>");
-                                        bw.write("<center><h3>You're not allowed to access " + header.getRequesteddocument().replace("..", "") + "!</center></h3>");
-                                        bw.write("\n<center><hr>\n " + SERVERNAME + (!config.isVersionSuppressed() ? "/" + VERSION : "") + " on " + System.getProperty("os.name") + " at " + header.getHost() + "</center>");
-                                        bw.write("\n</body>");
-                                        bw.write("\n</html>");
+                                        writeResponse(bw, 403,
+                                        "<!doctype html>\n<html>\n<body>\n",
+                                        "<center><h1>403 Forbidden</h1></center>",
+                                        "<center><h3>You're not allowed to access " + header.getRequesteddocument().replace("..", "") + "!</center></h3>",
+                                        "\n<center><hr>\n " + SERVERNAME + (!config.isVersionSuppressed() ? "/" + VERSION : "") + " on " + System.getProperty("os.name") + " at " + header.getHost() + "</center>",
+                                        "\n</body>",
+                                        "\n</html>");
                                         Consolelogf("[%s] <= 403 Forbidden\n", socket.getInetAddress().toString());
                                         logError("[" + socket.getInetAddress().toString() + "] <= 403 Forbidden " + header.getRequesteddocument());
                                     } else if (fileexist == 3) {
-                                        bw.write("HTTP/1.1 200 OK\r\n");
-                                        bw.write("Server: " + SERVERNAME + "\r\n");
-                                        bw.write("");
-                                        bw.write("\r\n");
-                                        bw.write("<!doctype html>\n");
-                                        bw.write(listFiles(header.getRequesteddocument(), header));
+                                        writeResponse(bw, 200,
+                                        "<!doctype html>\n",
+                                        listFiles(header.getRequesteddocument(), header));
                                         Consolelogf("[%s] <= 200 OK\n", socket.getInetAddress().toString());
                                     } else {
-                                        bw.write("HTTP/1.1 404 Not Found\r\n");
-                                        bw.write("Server: " + SERVERNAME + "\r\n");
-                                        bw.write("");
-                                        bw.write("\r\n");
-                                        bw.write("<!doctype html>\n<html>\n<body>\n");
-                                        bw.write("<center><h1>404 Not Found</h1></center>");
-                                        bw.write("<center><h3>The requested url " + header.getRequesteddocument().replace("..", "") + " was not found!</center></h3>");
-                                        bw.write("\n<center><hr>\n " + SERVERNAME + (!config.isVersionSuppressed() ? "/" + VERSION : "") + " on " + System.getProperty("os.name") + " at " + header.getHost() + "</center>");
-                                        bw.write("\n</body>");
-                                        bw.write("\n</html>");
+                                        writeResponse(bw, 404,
+                                        "<!doctype html>\n<html>\n<body>\n",
+                                        "<center><h1>404 Not Found</h1></center>",
+                                        "<center><h3>The requested url " + header.getRequesteddocument().replace("..", "") + " was not found!</center></h3>",
+                                        "\n<center><hr>\n " + SERVERNAME + (!config.isVersionSuppressed() ? "/" + VERSION : "") + " on " + System.getProperty("os.name") + " at " + header.getHost() + "</center>",
+                                        "\n</body>",
+                                        "\n</html>");
                                         Consolelogf("[%s] <= 404 Not Found\n", socket.getInetAddress().toString());
                                         logError("[" + socket.getInetAddress().toString() + "] <= 404 Not Found " + header.getRequesteddocument());
                                     }
                                 }
                                 break;
                             default:
-                                bw.write("HTTP/1.1 400 Bad Request\r\n");
-                                bw.write("Server: " + SERVERNAME + "\r\n");
-                                bw.write("");
-                                bw.write("\r\n");
-                                bw.write("<!doctype html>\n<html>\n<body>\n");
-                                bw.write("<center><h1>400 Bad Request</h1></center>");
-                                bw.write("<center><h3>Request " + header.getRequesttype() + " not supported</center></h3>");
-                                bw.write("\n<center><hr>\n " + SERVERNAME + (!config.isVersionSuppressed() ? "/" + VERSION : "") + " on " + System.getProperty("os.name") + " at " + header.getHost() + "</center>");
-                                bw.write("\n</body>");
-                                bw.write("\n</html>");
+                                Consolelogf("[%s] %s %s\n", socket.getInetAddress(), header.getRequesttype(), header.getRequesteddocument());
+                                logError("[" + socket.getInetAddress() + "] <= 501 Not Implemented");
+                                writeResponse(bw, 501,
+                                "<!doctype html>\n<html>\n<body>\n",
+                                "<center><h1>501 Not Implemented</h1></center>",
+                                "<center><h3>Request " + header.getRequesttype() + " not (yet) supported</center></h3>",
+                                "\n<center><hr>\n " + SERVERNAME + (!config.isVersionSuppressed() ? "/" + VERSION : "") + " on " + System.getProperty("os.name") + " at " + header.getHost() + "</center>",
+                                "\n</body>",
+                                "\n</html>");
                                 break;
                         }
 

@@ -9,6 +9,7 @@ public class ClientHeader {
     private String version = "";
     private String host = "";
     private String useragent = "";
+    private ArrayList<String> encodings = new ArrayList<>();
     private boolean headercorrupt = false;
 
     public ClientHeader(ArrayList<String> header) {
@@ -16,18 +17,22 @@ public class ClientHeader {
         for (String elems : header) {
             //TODO Check for incomplete header
             try {
-                String[] temp = elems.split(" ");
+                String[] temp = elems.toLowerCase().split(" ");
+                String[] tempNormal = elems.split(" ");
                 if (line == 0) {
-                    this.setRequesttype(temp[0]);
-                    this.setRequesteddocument(temp[1]);
-                    this.setVersion(temp[2].replace("HTTP/", ""));
-                } else if (temp[0].equals("Host:")) {
-                    this.setHost(temp[1]);
-                } else if (temp[0].equals("User-Agent:")) {
-                    for (String uagentelems : temp) {
+                    this.setRequesttype(tempNormal[0].toUpperCase());
+                    this.setRequesteddocument(tempNormal[1]);
+                    this.setVersion(tempNormal[2].toUpperCase().replace("HTTP/", ""));
+                } else if (temp[0].equals("host:")) {
+                    this.setHost(tempNormal[1]);
+                } else if (temp[0].equals("user-agent:")) {
+                    for (String uagentelems : tempNormal) {
                         if (!uagentelems.equals("User-Agent:"))
                             this.setUseragent(this.getUseragent() + uagentelems + " ");
                     }
+                } else if (temp[0].equals("accept-encoding:")) {
+                    String encodingstr = elems.replaceAll("accept-encoding:|\\s","");
+                    //encodings = encodingstr.split(",");
                 }
             } catch (Exception e) {
                 this.setHeadercorrupt(true);

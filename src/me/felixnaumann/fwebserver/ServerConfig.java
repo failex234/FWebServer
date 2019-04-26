@@ -6,6 +6,7 @@ import java.util.HashMap;
 public class ServerConfig {
 
     private HashMap<String, String> customkeywords;
+    private HashMap<String, String> customheader;
     private ArrayList<String> indexfiles;
     private String servername;
     private String wwwroot;
@@ -16,6 +17,7 @@ public class ServerConfig {
 
     void createNewConfig() {
         customkeywords = new HashMap<>();
+        customheader = new HashMap<>();
         indexfiles = new ArrayList<>();
         indexfiles.add("index.html");
         servername = "FWebServer";
