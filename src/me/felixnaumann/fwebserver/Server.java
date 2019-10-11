@@ -30,6 +30,8 @@ public class Server {
     private File configfile;
     private Gson gsoninstance;
     private ServerConfig config;
+
+    private ClientHeader currentHeader = null;
     private boolean silenced;
 
     String wwwroot;
@@ -39,8 +41,17 @@ public class Server {
     String wantedfilemime;
     Date wantedfileLastModified;
 
+    private static Server srv = null;
 
-    Server(int port, boolean silenced) {
+    public static Server getServerInstance(int port, boolean silenced) {
+        if (srv == null) {
+            srv = new Server(port, silenced);
+        }
+        return srv;
+    }
+
+
+    private Server(int port, boolean silenced) {
         currdir = "";
         wantedfilemime = "text/html";
         httpstatusCodes.put(200, "OK");
@@ -462,6 +473,10 @@ public class Server {
         wantedfileLastModified = null;
     }
 
+    public ClientHeader getCurrentHeader() {
+        return currentHeader;
+    }
+
     public class IncomingThread implements Runnable {
 
         @Override
@@ -505,6 +520,7 @@ public class Server {
                             }
                         }
                         ClientHeader header = new ClientHeader(req);
+                        currentHeader = header;
 
                         if(header.isHeadercorrupt()) {
                             writeResponse(bw, 400,
@@ -516,6 +532,10 @@ public class Server {
                         }
 
                         switch (header.getRequesttype()) {
+                            case "PUT":
+                            case "POST":
+                            case "DELETE":
+                            case "PATCH":
                             case "GET":
                                 Consolelogf("[%s] GET %s\n", socket.getInetAddress().toString(), header.getRequesteddocument());
                                 logAccess("[" + socket.getInetAddress().toString() + "] GET " + header.getRequesteddocument());
@@ -588,6 +608,8 @@ public class Server {
                         Thread.currentThread().interrupt();
                     } catch (IOException e) {
                         e.printStackTrace();
+                    } finally {
+                        currentHeader = null;
                     }
                 }
             }
