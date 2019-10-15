@@ -38,4 +38,8 @@ public class PythonApi {
     public String getRequestMethod() {
         return Server.getServerInstance(0, false).getCurrentHeader().getRequesttype();
     }
+
+    public boolean isGetSet(String getparam) {
+        return Server.scriptheader.get(requestid).getGETparams().contains(getparam + "=");
+    }
 }

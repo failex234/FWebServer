@@ -3,6 +3,7 @@ package me.felixnaumann.fwebserver;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import me.felixnaumann.fwebserver.api.PythonApi;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.python.antlr.ast.Str;
 import org.python.util.PythonInterpreter;
 
@@ -40,6 +41,7 @@ public class Server {
     private boolean silenced;
 
     public static HashMap<String, StringBuilder> scriptresults = new HashMap<>();
+    public static HashMap<String, ClientHeader> scriptheader = new HashMap<>();
 
     String wwwroot;
     String currdir;
@@ -497,29 +499,9 @@ public class Server {
         wantedfileLastModified = null;
     }
 
-    private HashMap<String, String> getGETParams(String reqdoc) {
-        int parambegin = reqdoc.indexOf('?');
-        if (parambegin == -1) return new HashMap<>();
-
-        String[] keysandvals = reqdoc.substring(parambegin + 1).split("&");
-        HashMap<String, String> GET = new HashMap<>();
-        for (String combined : keysandvals) {
-            String[] seperated = combined.split("=");
-            if (seperated == null || seperated.length != 2) {
-                GET.put(seperated[0], seperated[1]);
-            }
-        }
-
-        return GET;
-    }
-
-    private HashMap<String, String> getPOSTParams(String reqdoc) {
-        //TODO
-        return new HashMap<>();
-    }
-
     private String interpretScriptFile(File scriptfile, String rqid) {
         scriptresults.put(rqid, new StringBuilder());
+        scriptheader.put(rqid, currentHeader);
         try {
             if (fileExists("index.pyfs") == 1) {
                 String contents = readScriptFile(wantedfile);
@@ -556,7 +538,9 @@ public class Server {
                 PythonInterpreter pi = new PythonInterpreter();
                 pi.exec("import me.felixnaumann.fwebserver.api.PythonApi as PythonApi");
                 pi.exec("a = PythonApi(\"" + rqid + "\")");
-                pi.exec("GET = {\n    \"page\": \"test\"\n}");
+                HashMap<String, String> getparams = Utils.getGETParams(currentHeader.getGETparams());
+                String dict = Utils.constructPythonDictFromHashMap("GET", getparams);
+                pi.exec(dict);
                 pi.exec(contents);
 
                 return scriptresults.get(rqid).toString();
@@ -659,21 +643,26 @@ public class Server {
                                                 Consolelogf("[%s] <= 200 OK\n", socket.getInetAddress().toString());
                                             }
                                             catch (Exception e) {
-                                                StringWriter sw = new StringWriter();
-                                                PrintWriter pw = new PrintWriter(sw);
-                                                sw.append("<html><body>");
-                                                sw.append("<h2>Error while processing pyfs:</h2>");
-                                                sw.append("<font color=\"red\">");
-                                                e.printStackTrace(pw);
-                                                e.printStackTrace();
-                                                sw.append("</font>");
-                                                sw.append("</body></html>");
-                                                String error = sw.toString();
-                                                error = error.replaceAll("\\s+at\\s.+", "").replace("\n", "<br>").replace("<string>", "index.pyfs").replace("<module>", "module");
+                                                StringBuilder errorpage = new StringBuilder();
+                                                errorpage.append("<html><body>");
+                                                errorpage.append("<h2>Error while processing pyfs:</h2>");
+                                                errorpage.append("<font color=\"red\">");
+
+                                                String tempTrace = ExceptionUtils.getStackTrace(e);
+                                                tempTrace = tempTrace.replace("<string>", indexfilename).replace("<", "&lt;").replace(">", "&gt;").replace("\n ", "<br>\t").replace("\n", "<br>");
+                                                tempTrace = tempTrace.replaceAll("\\tat.+", "").replace("\t","&nbsp;&nbsp;&nbsp;&nbsp;").replaceAll("\\r<br>+", "");
+
+                                                errorpage.append(tempTrace);
+                                                errorpage.append("</font>");
+                                                errorpage.append("</body></html>");
+                                                String error = errorpage.toString();
+                                                error = error.replace("<module>", "module");
                                                 writeResponse(bw, 500, error);
                                                 Consolelogf("[%s] <= 500 Internal Server Error\n", socket.getInetAddress().toString());
+                                                e.printStackTrace();
                                             }
                                             scriptresults.remove(reqid);
+                                            scriptheader.remove(reqid);
                                         } else {
                                             writeResponse(bw, 200, contents);
                                             Consolelogf("[%s] <= 200 OK\n", socket.getInetAddress().toString());

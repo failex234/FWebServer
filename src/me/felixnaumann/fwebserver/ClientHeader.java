@@ -10,6 +10,7 @@ public class ClientHeader {
     private String host = "";
     private String useragent = "";
     private ArrayList<String> encodings = new ArrayList<>();
+    private String GETparams = "";
     private boolean headercorrupt = false;
 
     public ClientHeader(ArrayList<String> header) {
@@ -21,7 +22,11 @@ public class ClientHeader {
                 String[] tempNormal = elems.split(" ");
                 if (line == 0) {
                     this.setRequesttype(tempNormal[0].toUpperCase());
-                    this.setRequesteddocument(tempNormal[1]);
+                    String[] docwithoutparams = tempNormal[1].split("\\?");
+                    this.setRequesteddocument(docwithoutparams[0]);
+                    if (docwithoutparams.length > 1) {
+                        this.setGETparams(docwithoutparams[1]);
+                    }
                     this.setVersion(tempNormal[2].toUpperCase().replace("HTTP/", ""));
                 } else if (temp[0].equals("host:")) {
                     this.setHost(tempNormal[1]);
@@ -88,5 +93,13 @@ public class ClientHeader {
 
     private void setHeadercorrupt(boolean headercorrupt) {
         this.headercorrupt = headercorrupt;
+    }
+
+    public String getGETparams() {
+        return GETparams;
+    }
+
+    public void setGETparams(String GETparams) {
+        this.GETparams = GETparams;
     }
 }

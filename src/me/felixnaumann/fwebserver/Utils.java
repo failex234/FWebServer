@@ -7,6 +7,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
 
 public class Utils {
 
@@ -122,6 +123,46 @@ public class Utils {
             if (i == idx) break;
         }
         return newlines + 1;
+    }
+
+    public static String getNChars(char ch, int charnum) {
+        StringBuilder sb = new StringBuilder();
+
+        for (int i = 0; i < charnum; i++) {
+            sb.append(ch);
+        }
+
+        return sb.toString();
+    }
+
+    public static HashMap<String, String> getGETParams(String params) {
+
+        String[] keysandvals = params.split("&");
+        HashMap<String, String> GET = new HashMap<>();
+        for (String combined : keysandvals) {
+            String[] seperated = combined.split("=");
+            if (seperated != null && seperated.length == 2) {
+                GET.put(seperated[0], seperated[1]);
+            }
+        }
+
+        return GET;
+    }
+
+    public static HashMap<String, String> getPOSTParams(String reqdoc) {
+        //TODO
+        return new HashMap<>();
+    }
+
+    public static String constructPythonDictFromHashMap(String dictname, HashMap<String, String> hm) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(dictname + " = {\n");
+        for (String key : hm.keySet()) {
+            sb.append("    \"" + key + "\": \"" + hm.get(key) + "\",\n");
+        }
+        sb.append("}");
+
+        return sb.toString();
     }
 
 }
