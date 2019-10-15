@@ -49,7 +49,7 @@ public class Utils {
         return filename.substring(extensionidx + 1);
     }
 
-    public static String htmlTopython(String lines) {
+    public static String htmlTopython(String lines, int currLine) {
         StringBuilder cmd = new StringBuilder();
         String replaced = lines.replace("\"", "\\\"").replace("\n", "\\n");
         if (countTrailingSpaces(replaced) + countTrailingTabs(replaced) > 0) {
@@ -63,9 +63,9 @@ public class Utils {
         return cmd.toString();
     }
 
-    public static String strCutAndConvert(String str, int from, int to) {
+    public static String strCutAndConvert(String str, int from, int to, int currLine) {
         String before = str.substring(0, from - 7);
-        String converted = htmlTopython(str.substring(from + 1, to));
+        String converted = htmlTopython(str.substring(from + 1, to), currLine);
         String after = str.substring(to + 8);
 
         StringBuilder sb = new StringBuilder();
@@ -96,6 +96,32 @@ public class Utils {
             if (str.charAt(i) != '\t') return i;
         }
         return 0;
+    }
+
+    public static String getNthLine(String alllines, int linenum) {
+        int newlinecount = 0;
+        int startidx = 0, endidx = 0;
+        boolean beginningfound = false;
+        for (int i = 0; i < alllines.length(); i++) {
+            if (alllines.charAt(i) == '\n' && !beginningfound) newlinecount++;
+            if (beginningfound) endidx = i;
+
+            if (newlinecount - 1 == linenum) {
+                startidx = i;
+                beginningfound = true;
+            }
+        }
+
+        return alllines.substring(startidx, endidx);
+    }
+
+    public static int getCurrentLine(String alllines, int idx) {
+        int newlines = 0;
+        for (int i = 0; i < alllines.length(); i++) {
+            if (alllines.charAt(i) == '\n') newlines++;
+            if (i == idx) break;
+        }
+        return newlines + 1;
     }
 
 }

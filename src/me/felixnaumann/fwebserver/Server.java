@@ -538,7 +538,7 @@ public class Server {
                             } else if (contents.substring(i, i + 7).equals("html\"\"\"")) {
                                 if (htmlfound) {
                                     endidx = i - 1;
-                                    contents = Utils.strCutAndConvert(contents, startidx, endidx);
+                                    contents = Utils.strCutAndConvert(contents, startidx, endidx, Utils.getCurrentLine(contents, i));
                                     htmlfound = false;
                                     break;
                                 } else {
