@@ -14,6 +14,7 @@ public class ServerConfig {
     private String errorlog;
     private String logfolder;
     private boolean suppressversion;
+    private boolean nofileindex;
 
     void createNewConfig() {
         customkeywords = new HashMap<>();
@@ -26,6 +27,7 @@ public class ServerConfig {
         errorlog = "logs/error.log";
         logfolder = "logs";
         suppressversion = false;
+        nofileindex = false;
     }
 
     public String getServername() {
@@ -110,4 +112,11 @@ public class ServerConfig {
         this.suppressversion = suppressversion;
     }
 
+    public boolean isNofileindex() {
+        return nofileindex;
+    }
+
+    public void setNofileindex(boolean nofileindex) {
+        this.nofileindex = nofileindex;
+    }
 }

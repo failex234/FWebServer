@@ -2,6 +2,9 @@ package me.felixnaumann.fwebserver;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import me.felixnaumann.fwebserver.api.PythonApi;
+import org.python.antlr.ast.Str;
+import org.python.util.PythonInterpreter;
 
 import java.io.*;
 import java.net.ServerSocket;
@@ -11,6 +14,8 @@ import java.nio.file.Files;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
+//TODO: pyfs zu python: Einrückung fixen!
+//TODO: Fix python interpreter error view in html
 public class Server {
 
     int port;
@@ -33,6 +38,8 @@ public class Server {
 
     private ClientHeader currentHeader = null;
     private boolean silenced;
+
+    public static HashMap<String, StringBuilder> scriptresults = new HashMap<>();
 
     String wwwroot;
     String currdir;
@@ -432,6 +439,23 @@ public class Server {
 
     }
 
+    private String readScriptFile(File file) {
+        StringBuilder tempstring = new StringBuilder();
+        try {
+            BufferedReader br = new BufferedReader(new FileReader(file));
+            String line;
+
+            while((line = br.readLine()) != null) {
+                tempstring.append(line);
+                tempstring.append("\n");
+            }
+            return tempstring.toString();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return "a.write('<font color=\"red\" size=\"120\">Error reading file</font>";
+        }
+    }
+
     private void Consolelog(String string) {
         if (!silenced) System.out.println("[LOG] " + string);
     }
@@ -471,6 +495,77 @@ public class Server {
 
         wantedfilemime = "text/html";
         wantedfileLastModified = null;
+    }
+
+    private HashMap<String, String> getGETParams(String reqdoc) {
+        int parambegin = reqdoc.indexOf('?');
+        if (parambegin == -1) return new HashMap<>();
+
+        String[] keysandvals = reqdoc.substring(parambegin + 1).split("&");
+        HashMap<String, String> GET = new HashMap<>();
+        for (String combined : keysandvals) {
+            String[] seperated = combined.split("=");
+            if (seperated == null || seperated.length != 2) {
+                GET.put(seperated[0], seperated[1]);
+            }
+        }
+
+        return GET;
+    }
+
+    private HashMap<String, String> getPOSTParams(String reqdoc) {
+        //TODO
+        return new HashMap<>();
+    }
+
+    private String interpretScriptFile(File scriptfile, String rqid) {
+        scriptresults.put(rqid, new StringBuilder());
+        try {
+            if (fileExists("index.pyfs") == 1) {
+                String contents = readScriptFile(wantedfile);
+
+                //TODO: Find html area, extract and convert into python code
+                boolean htmlfound = false;
+                int startidx = 0, endidx = 0;
+
+                //Extract html areas from script file
+                while(contents.contains("\"\"\"html")) {
+                    for (int i = 0; i < contents.length(); i++) {
+                        if (i < contents.length() - 7) {
+                            if (contents.substring(i, i + 7).equals("\"\"\"html")) {
+                                htmlfound = true;
+                                startidx = i + 7;
+                            } else if (contents.substring(i, i + 7).equals("html\"\"\"")) {
+                                if (htmlfound) {
+                                    endidx = i - 1;
+                                    contents = Utils.strCutAndConvert(contents, startidx, endidx);
+                                    htmlfound = false;
+                                    break;
+                                } else {
+                                    //Count newlines to get the line number
+                                    String linecounttemp = contents.substring(0, i + 1);
+                                    int cnt = Utils.countChar(linecounttemp, '\n') + 1;
+
+                                    contents = "a.write('<font color=\"red\" size=\"120\">Error: missing opening html tag (\"\"\"html) for closing tag (html\"\"\") in line " + cnt + "</font>";
+                                }
+                            }
+                        }
+                    }
+                }
+
+                PythonInterpreter pi = new PythonInterpreter();
+                pi.exec("import me.felixnaumann.fwebserver.api.PythonApi as PythonApi");
+                pi.exec("a = PythonApi(\"" + rqid + "\")");
+                pi.exec("GET = {\n    \"page\": \"test\"\n}");
+                pi.exec(contents);
+
+                return scriptresults.get(rqid).toString();
+            }
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+        return "";
     }
 
     public ClientHeader getCurrentHeader() {
@@ -542,19 +637,59 @@ public class Server {
                                 if (header.getRequesteddocument().equals("/") || fileExists(header.getRequesteddocument()) == 3) {
                                     boolean indexfound = false;
                                     String contents = "";
+                                    String indexfilename = "";
                                     for (String file : config.getIndexfiles()) {
                                         if (fileExists(header.getRequesteddocument() + "/" + file) == 1) {
+                                            indexfilename = (new File(header.getRequesteddocument() + "/" + file)).getName();
                                             contents = processHTML(readFile(header.getRequesteddocument() + "/" + file), header);
                                             indexfound = true;
                                             break;
                                         }
                                     }
-                                    if (!indexfound) {
+                                    if (!indexfound && !config.isNofileindex()) {
                                         contents = listFiles(header.getRequesteddocument(),header);
+                                        writeResponse(bw, 200, contents);
+                                        Consolelogf("[%s] <= 200 OK\n", socket.getInetAddress().toString());
+                                    } else if (indexfound) {
+                                        if (Utils.getFileExtension(indexfilename).equals("pyfs")) {
+                                            String reqid = Utils.newRequestId();
+                                            try {
+                                                contents = interpretScriptFile(new File(header.getRequesteddocument() + "/index.pyfs"), reqid);
+                                                writeResponse(bw, 200, contents);
+                                                Consolelogf("[%s] <= 200 OK\n", socket.getInetAddress().toString());
+                                            }
+                                            catch (Exception e) {
+                                                StringWriter sw = new StringWriter();
+                                                PrintWriter pw = new PrintWriter(sw);
+                                                sw.append("<html><body>");
+                                                sw.append("<h2>Error while processing pyfs:</h2>");
+                                                sw.append("<font color=\"red\">");
+                                                e.printStackTrace(pw);
+                                                e.printStackTrace();
+                                                sw.append("</font>");
+                                                sw.append("</body></html>");
+                                                String error = sw.toString();
+                                                error = error.replaceAll("\\s+at\\s.+", "").replace("\n", "<br>").replace("<string>", "index.pyfs").replace("<module>", "module");
+                                                writeResponse(bw, 500, error);
+                                                Consolelogf("[%s] <= 500 Internal Server Error\n", socket.getInetAddress().toString());
+                                            }
+                                            scriptresults.remove(reqid);
+                                        } else {
+                                            writeResponse(bw, 200, contents);
+                                            Consolelogf("[%s] <= 200 OK\n", socket.getInetAddress().toString());
+                                        }
+                                    } else {
+                                        writeResponse(bw, 403,
+                                                "<!doctype html>\n<html>\n<body>\n",
+                                                "<center><h1>403 Forbidden</h1></center>",
+                                                "<center><h3>You're not allowed to access " + header.getRequesteddocument().replace("..", "") + "!</center></h3>",
+                                                "\n<center><hr>\n " + SERVERNAME + (!config.isVersionSuppressed() ? "/" + VERSION : "") + " on " + System.getProperty("os.name") + " at " + header.getHost() + "</center>",
+                                                "\n</body>",
+                                                "\n</html>");
+                                        Consolelogf("[%s] <= 403 Forbidden\n", socket.getInetAddress().toString());
                                     }
 
-                                    writeResponse(bw, 200, contents);
-                                    Consolelogf("[%s] <= 200 OK\n", socket.getInetAddress().toString());
+
                                 } else {
                                     int fileexist = fileExists(header.getRequesteddocument());
                                     if (fileexist == 1) {
