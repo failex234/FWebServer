@@ -40,6 +40,6 @@ public class PythonApi {
     }
 
     public boolean isGetSet(String getparam) {
-        return Server.scriptheader.get(requestid).getGETparams().contains(getparam + "=");
+        return Server.scriptheader.get(requestid).getGETparams().matches(getparam + "=.+");
     }
 }

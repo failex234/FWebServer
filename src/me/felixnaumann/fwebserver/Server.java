@@ -499,11 +499,11 @@ public class Server {
         wantedfileLastModified = null;
     }
 
-    private String interpretScriptFile(File scriptfile, String rqid) {
+    private String interpretScriptFile(File scriptfile, String relpath, String rqid) {
         scriptresults.put(rqid, new StringBuilder());
         scriptheader.put(rqid, currentHeader);
         try {
-            if (fileExists("index.pyfs") == 1) {
+            if (fileExists(relpath) == 1) {
                 String contents = readScriptFile(wantedfile);
 
                 //TODO: Find html area, extract and convert into python code
@@ -638,28 +638,14 @@ public class Server {
                                         if (Utils.getFileExtension(indexfilename).equals("pyfs")) {
                                             String reqid = Utils.newRequestId();
                                             try {
-                                                contents = interpretScriptFile(new File(header.getRequesteddocument() + "/index.pyfs"), reqid);
+                                                contents = interpretScriptFile(new File(header.getRequesteddocument() + "/index.pyfs"), header.getRequesteddocument() + "/index.pyfs", reqid);
                                                 writeResponse(bw, 200, contents);
                                                 Consolelogf("[%s] <= 200 OK\n", socket.getInetAddress().toString());
                                             }
                                             catch (Exception e) {
-                                                StringBuilder errorpage = new StringBuilder();
-                                                errorpage.append("<html><body>");
-                                                errorpage.append("<h2>Error while processing pyfs:</h2>");
-                                                errorpage.append("<font color=\"red\">");
-
-                                                String tempTrace = ExceptionUtils.getStackTrace(e);
-                                                tempTrace = tempTrace.replace("<string>", indexfilename).replace("<", "&lt;").replace(">", "&gt;").replace("\n ", "<br>\t").replace("\n", "<br>");
-                                                tempTrace = tempTrace.replaceAll("\\tat.+", "").replace("\t","&nbsp;&nbsp;&nbsp;&nbsp;").replaceAll("\\r<br>+", "");
-
-                                                errorpage.append(tempTrace);
-                                                errorpage.append("</font>");
-                                                errorpage.append("</body></html>");
-                                                String error = errorpage.toString();
-                                                error = error.replace("<module>", "module");
+                                                String error = Utils.buildErrorPage(e, indexfilename);
                                                 writeResponse(bw, 500, error);
                                                 Consolelogf("[%s] <= 500 Internal Server Error\n", socket.getInetAddress().toString());
-                                                e.printStackTrace();
                                             }
                                             scriptresults.remove(reqid);
                                             scriptheader.remove(reqid);
@@ -682,9 +668,26 @@ public class Server {
                                 } else {
                                     int fileexist = fileExists(header.getRequesteddocument());
                                     if (fileexist == 1) {
-                                        writeResponse(bw, 200,
-                                        processHTML(readFile(header.getRequesteddocument()), header));
-                                        Consolelogf("[%s] <= 200 OK\n", socket.getInetAddress().toString());
+                                        if (Utils.getFileExtension(header.getRequesteddocument()).equals("pyfs")) {
+                                            String reqid = Utils.newRequestId();
+                                            String contents = "";
+                                            try {
+                                                contents = interpretScriptFile(new File(header.getRequesteddocument()), header.getRequesteddocument(), reqid);
+                                                writeResponse(bw, 200, contents);
+                                                Consolelogf("[%s] <= 200 OK\n", socket.getInetAddress().toString());
+                                            }
+                                            catch (Exception e) {
+                                                String error = Utils.buildErrorPage(e, header.getRequesteddocument());
+                                                writeResponse(bw, 500, error);
+                                                Consolelogf("[%s] <= 500 Internal Server Error\n", socket.getInetAddress().toString());
+                                            }
+                                            scriptresults.remove(reqid);
+                                            scriptheader.remove(reqid);
+                                        } else {
+                                            writeResponse(bw, 200,
+                                                    processHTML(readFile(header.getRequesteddocument()), header));
+                                            Consolelogf("[%s] <= 200 OK\n", socket.getInetAddress().toString());
+                                        }
                                     } else if (fileexist == 2){
                                         writeResponse(bw, 403,
                                         "<!doctype html>\n<html>\n<body>\n",

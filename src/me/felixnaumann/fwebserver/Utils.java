@@ -1,5 +1,6 @@
 package me.felixnaumann.fwebserver;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.python.antlr.ast.Str;
 
 import java.nio.charset.StandardCharsets;
@@ -163,6 +164,25 @@ public class Utils {
         sb.append("}");
 
         return sb.toString();
+    }
+
+    public static String buildErrorPage(Exception e, String filename) {
+        StringBuilder errorpage = new StringBuilder();
+        errorpage.append("<html><body>");
+        errorpage.append("<h2>Error while processing pyfs:</h2>");
+        errorpage.append("<font color=\"red\">");
+
+        String tempTrace = ExceptionUtils.getStackTrace(e);
+        tempTrace = tempTrace.replace("<string>", filename).replace("<", "&lt;").replace(">", "&gt;").replace("\n ", "<br>\t").replace("\n", "<br>");
+        tempTrace = tempTrace.replaceAll("\\tat.+", "").replace("\t","&nbsp;&nbsp;&nbsp;&nbsp;").replaceAll("\\r<br>+", "");
+
+        errorpage.append(tempTrace);
+        errorpage.append("</font>");
+        errorpage.append("</body></html>");
+        String error = errorpage.toString();
+        e.printStackTrace();
+
+        return error.replace("<module>", "module");
     }
 
 }
