@@ -23,9 +23,9 @@ public class ClientHeader {
                 if (line == 0) {
                     this.setRequesttype(tempNormal[0].toUpperCase());
                     String[] docwithoutparams = tempNormal[1].split("\\?");
-                    this.setRequesteddocument(docwithoutparams[0]);
+                    this.setRequesteddocument(Utils.URLdecode(docwithoutparams[0]));
                     if (docwithoutparams.length > 1) {
-                        this.setGETparams(docwithoutparams[1]);
+                        this.setGETparams(Utils.URLdecode(docwithoutparams[1]));
                     }
                     this.setVersion(tempNormal[2].toUpperCase().replace("HTTP/", ""));
                 } else if (temp[0].equals("host:")) {

@@ -3,6 +3,8 @@ package me.felixnaumann.fwebserver;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.python.antlr.ast.Str;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -183,6 +185,16 @@ public class Utils {
         e.printStackTrace();
 
         return error.replace("<module>", "module");
+    }
+
+    public static String URLdecode(String encoded) {
+        try {
+            return URLDecoder.decode(encoded, StandardCharsets.UTF_8.toString());
+        }
+        catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+        return encoded;
     }
 
 }

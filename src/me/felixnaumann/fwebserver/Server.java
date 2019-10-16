@@ -11,17 +11,18 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
 //TODO: pyfs zu python: Einrückung fixen!
-//TODO: Fix python interpreter error view in html
+//TODO: add optional setting to inject html tags into the response
 public class Server {
 
     int port;
     private String SERVERNAME = "FWebServer";
-    private final String VERSION = "0.3.0";
+    private final String VERSION = "0.3.1";
     private ServerSocket mainsocket;
     private Thread incoming;
 
@@ -315,6 +316,11 @@ public class Server {
         return 2;
     }
 
+    /**
+     * Gets the parent directory of a file
+     * @param currdocument the file that we want to know the parent directory of
+     * @return the parent directory of a file or ..
+     */
     private String getParentDirectory(String currdocument) {
         int slashpos = 0;
         for (int i = currdocument.length() - 1; i > 0; i--) {
@@ -333,11 +339,10 @@ public class Server {
      * @param header
      * @return
      */
-    //TODO Show directories first and don't show file size of directories
     private String listFiles(String path, ClientHeader header) {
         File[] filelist = (new File(wwwroot + "/" + path).listFiles());
         StringBuilder html = new StringBuilder();
-        html.append("<html>\n\t<head>\n\t\t<title>Index of ").append(path).append("</title>\n\t</head>\n\t<body>\n");
+        html.append("<!DOCTYPE html>\n<html lang=\"en\">\n\t<head>\n\t\t<meta http-equiv=\"Content-Type\" content=\"text-html; charset=utf-8\"/>\n\t\t<title>Index of ").append(path).append("</title>\n\t</head>\n\t<body>\n");
         html.append("\t\t<h1>Index of ").append(path).append("</h1>\n");
         html.append("\t\t<table>\n");
         html.append("\t\t\t<tr>\n\t\t\t\t<td style=\"width: 300px;\">Name</td><td style=\"width: 300px;\">Last modified</td><td style=\"width: 300px;\">Size</td>\n\t\t\t</tr>");
@@ -346,7 +351,7 @@ public class Server {
         for (File dir : filelist) {
             if (dir.isFile()) continue;
             Date lastmodified = new Date(dir.lastModified());
-            html.append("\n\t\t\t<tr>\n\t\t\t\t<td>").append("<a href=\"").append(path).append("/").append(dir.getName()).append("\">").append(dir.getName()).append("</a></td><td>").append(lastmodified.toString()).append("</td><td>").append("</td>\n\t\t\t</tr>");
+            html.append("\n\t\t\t<tr>\n\t\t\t\t<td>").append("<a href=\"").append(path).append("/").append(dir.getName()).append("\">").append(dir.getName()).append("</a></td><td>").append(lastmodified.toString()).append("</td><td>").append("-</td>\n\t\t\t</tr>");
         }
 
         for (File f : filelist) {
@@ -441,6 +446,11 @@ public class Server {
 
     }
 
+    /**
+     * Tries to read the wanted scriptfile. Prints out an error to the browser when the read fails
+     * @param file the scriptfile
+     * @return contents of file
+     */
     private String readScriptFile(File file) {
         StringBuilder tempstring = new StringBuilder();
         try {
@@ -458,10 +468,19 @@ public class Server {
         }
     }
 
+    /**
+     * log to the console
+     * @param string console text
+     */
     private void Consolelog(String string) {
         if (!silenced) System.out.println("[LOG] " + string);
     }
 
+    /**
+     * log formatted to the console
+     * @param format text format
+     * @param objects
+     */
     private void Consolelogf(String format, Object... objects) {
         if (!silenced) System.out.printf("[LOG] " + format, objects);
     }
@@ -499,6 +518,13 @@ public class Server {
         wantedfileLastModified = null;
     }
 
+    /**
+     * reads, converts html to python and then interprets the python.
+     * @param scriptfile scriptfile to be run
+     * @param relpath the relative path to the scriptfile (from the wwwroot directory)
+     * @param rqid the request id to know which result corresponds to which client / request
+     * @return the html of the interpreted scriptfile
+     */
     private String interpretScriptFile(File scriptfile, String relpath, String rqid) {
         scriptresults.put(rqid, new StringBuilder());
         scriptheader.put(rqid, currentHeader);
@@ -506,7 +532,6 @@ public class Server {
             if (fileExists(relpath) == 1) {
                 String contents = readScriptFile(wantedfile);
 
-                //TODO: Find html area, extract and convert into python code
                 boolean htmlfound = false;
                 int startidx = 0, endidx = 0;
 
@@ -517,6 +542,7 @@ public class Server {
                             if (contents.substring(i, i + 7).equals("\"\"\"html")) {
                                 htmlfound = true;
                                 startidx = i + 7;
+                                endidx = contents.length() - 1;
                             } else if (contents.substring(i, i + 7).equals("html\"\"\"")) {
                                 if (htmlfound) {
                                     endidx = i - 1;
@@ -587,7 +613,7 @@ public class Server {
                 while (!socket.isClosed()) {
                     try {
                         BufferedReader br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                        BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
+                        BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8));
 
                         ArrayList<String> req = new ArrayList<>();
 
