@@ -379,30 +379,25 @@ public class Server {
     private String convertToNearestUnit(long size) {
         StringBuilder endstring = new StringBuilder();
         double convertedsize;
-        if (size > 99L && size < 100000L) {
+        endstring.append("SIZE");
+        if (size < 99L) {
+            convertedsize = (double) size;
+            endstring.append("B");
+        } else if (size > 99L && size < 100000L) {
             convertedsize = (double) size / 1000D;
-            endstring.append("SIZE");
             endstring.append("K");
         } else if(size > 99999L && size < 100000000L) {
-            convertedsize = (double) size / 10000000D;
-            endstring.append("SIZE");
+            convertedsize = (double) size / 1000000D;
             endstring.append("M");
         } else if (size > 99999999L && size < 100000000000L) {
-            convertedsize = (double) size / 1000000000D;
-            endstring.append("SIZE");
+            convertedsize = (double) size / 100000000D;
             endstring.append("G");
         } else if (size > 99999999999L && size < 100000000000000L) {
-            convertedsize = (double) size / 10000000000000D;
-            endstring.append("SIZE");
+            convertedsize = (double) size / 1000000000000D;
             endstring.append("T");
-        } else if (size > 99999999999999L && size < 100000000000000000L) {
-            convertedsize = (double) size / 100000000000000000D;
-            endstring.append("SIZE");
-            endstring.append("P");
         } else {
-            convertedsize = (double) size;
-            endstring.append("SIZE");
-            endstring.append("B");
+            convertedsize = (double) size / 10000000000000000D;
+            endstring.append("P");
         }
 
         if (convertedsize == (long) convertedsize) return endstring.toString().replace("SIZE", String.format("%d", (int) convertedsize));
