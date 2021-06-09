@@ -1,12 +1,10 @@
 package me.felixnaumann.fwebserver.api;
 
-import me.felixnaumann.fwebserver.ClientHeader;
-import me.felixnaumann.fwebserver.Request;
+
 import me.felixnaumann.fwebserver.Server;
 import me.felixnaumann.fwebserver.Utils;
 
-import java.io.BufferedWriter;
-import java.io.IOException;
+import java.util.Base64;
 import java.util.HashMap;
 
 public class PythonApi {
@@ -30,7 +28,19 @@ public class PythonApi {
         return Server.scriptheader.get(requestid).getGETparams().matches(getparam + "=.+");
     }
 
+    public HashMap<String, String> getHeaderFields() {
+        return Server.scriptheader.get(requestid).getOtherfields();
+    }
+
     public String URLdecode(String encoded) {
         return Utils.URLdecode(encoded);
+    }
+
+    public String base64decode(String b64) {
+        return new String(Base64.getDecoder().decode(b64));
+    }
+
+    public String base64encode(String raw) {
+        return new String(Base64.getDecoder().decode(raw));
     }
 }

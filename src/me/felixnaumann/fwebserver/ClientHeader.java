@@ -1,6 +1,7 @@
 package me.felixnaumann.fwebserver;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class ClientHeader {
 
@@ -12,6 +13,7 @@ public class ClientHeader {
     private ArrayList<String> encodings = new ArrayList<>();
     private String GETparams = "";
     private boolean headercorrupt = false;
+    private HashMap<String, String> otherfields = new HashMap<>();
 
     public ClientHeader(ArrayList<String> header) {
         int line = 0;
@@ -38,8 +40,11 @@ public class ClientHeader {
                 } else if (temp[0].equals("accept-encoding:")) {
                     String encodingstr = elems.replaceAll("accept-encoding:|\\s","");
                     //encodings = encodingstr.split(",");
+                } else {
+                    otherfields.put(temp[0].split(":")[0], tempNormal.length == 1 ? "" : tempNormal[1]);
                 }
             } catch (Exception e) {
+                e.printStackTrace();
                 this.setHeadercorrupt(true);
             }
             line++;
@@ -101,5 +106,9 @@ public class ClientHeader {
 
     public void setGETparams(String GETparams) {
         this.GETparams = GETparams;
+    }
+
+    public HashMap<String, String> getOtherfields() {
+        return this.otherfields;
     }
 }

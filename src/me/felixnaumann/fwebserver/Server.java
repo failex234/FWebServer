@@ -2,9 +2,6 @@ package me.felixnaumann.fwebserver;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import me.felixnaumann.fwebserver.api.PythonApi;
-import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.python.antlr.ast.Str;
 import org.python.util.PythonInterpreter;
 
 import java.io.*;
@@ -137,8 +134,10 @@ public class Server {
             webroot.mkdir();
             File aboutfile = new File(wwwroot + "/about2.html");
             File indexfile = new File(wwwroot + "/index.html");
+            File dynfile = new File(wwwroot + "/about2dyn.pyfs");
             String filecontents = new String(Base64.getDecoder().decode(BuiltIn.about2));
             String indexcontents = new String(Base64.getDecoder().decode(BuiltIn.index));
+            String dynfilecontents = new String(Base64.getDecoder().decode(BuiltIn.dyn));
 
             try {
                 BufferedWriter bw = new BufferedWriter(new FileWriter(aboutfile));
@@ -147,6 +146,10 @@ public class Server {
 
                 bw = new BufferedWriter(new FileWriter(indexfile));
                 bw.write(indexcontents);
+                bw.close();
+
+                bw = new BufferedWriter(new FileWriter(dynfile));
+                bw.write(dynfilecontents);
                 bw.close();
             }
             catch (IOException e) {
@@ -307,7 +310,10 @@ public class Server {
                 if (temp.exists()) wantedfile = new File(temp.getAbsolutePath());
                 else wantedfile = new File(temp2.getAbsolutePath());
 
-                wantedfilemime = Files.probeContentType(wantedfile.toPath());;
+                wantedfilemime = Files.probeContentType(wantedfile.toPath());
+                if (wantedfilemime == null && filename.endsWith(".pyfs")) {
+                    wantedfilemime = "text/html";
+                }
                 wantedfileLastModified = new Date(wantedfile.lastModified());
                 return 1;
             }
@@ -631,7 +637,7 @@ public class Server {
                             writeResponse(bw, 400,
                             "<!doctype html>\n<html>\n<body>",
                             "<center><h1>400 Bad Request</h1></center>",
-                            "<center><h3>Invalid request header!/center></h3>",
+                            "<center><h3>Invalid request header!</center></h3>",
                             "</body>",
                             "</html>");
                         }
@@ -642,8 +648,8 @@ public class Server {
                             case "DELETE":
                             case "PATCH":
                             case "GET":
-                                Consolelogf("[%s] GET %s\n", socket.getInetAddress().toString(), header.getRequesteddocument());
-                                logAccess("[" + socket.getInetAddress().toString() + "] GET " + header.getRequesteddocument());
+                                Consolelogf("[%s] %s %s\n", socket.getInetAddress().toString(), header.getRequesttype(), header.getRequesteddocument());
+                                logAccess("[" + socket.getInetAddress().toString() + "] " + header.getRequesttype() + " " + header.getRequesteddocument());
                                 if (header.getRequesteddocument().equals("/") || fileExists(header.getRequesteddocument()) == 3) {
                                     boolean indexfound = false;
                                     String contents = "";
@@ -699,7 +705,7 @@ public class Server {
                                             String contents = "";
                                             try {
                                                 contents = interpretScriptFile(new File(header.getRequesteddocument()), header.getRequesteddocument(), reqid);
-                                                writeResponse(bw, 200, contents);
+                                                writeResponse(bw, 200, processHTML(contents, header));
                                                 Consolelogf("[%s] <= 200 OK\n", socket.getInetAddress().toString());
                                             }
                                             catch (Exception e) {
@@ -764,6 +770,7 @@ public class Server {
                     } finally {
                         currentHeader = null;
                     }
+
                 }
             }
         }
