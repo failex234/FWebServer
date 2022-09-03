@@ -12,14 +12,12 @@ public class FWebServer {
             } else if (args.length > 1) {
                 for (int i = 0; i < args.length - 1; i++) {
                     switch (args[i]) {
-                        case "-s":
-                        case "--silence":
-                            silenceflag = true;
-                            break;
-                        default:
+                        case "-s", "--silence" -> silenceflag = true;
+                        default -> {
                             System.out.printf("unrecognized argument %s\n", args[i]);
                             usage();
                             System.exit(1);
+                        }
                     }
                 }
                 startServer(args);
