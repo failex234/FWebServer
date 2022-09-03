@@ -4,5 +4,6 @@ out/
 .idea/
 .jython_cache/
 .gradle/
+build/
 wwwroot/
 server.json
