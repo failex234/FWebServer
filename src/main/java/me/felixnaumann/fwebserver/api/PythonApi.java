@@ -1,8 +1,8 @@
 package me.felixnaumann.fwebserver.api;
 
 
-import me.felixnaumann.fwebserver.Server;
-import me.felixnaumann.fwebserver.Utils;
+import me.felixnaumann.fwebserver.server.Server;
+import me.felixnaumann.fwebserver.utils.MiscUtils;
 
 import java.util.Base64;
 import java.util.HashMap;
@@ -21,7 +21,7 @@ public class PythonApi {
     }
 
     public String getRequestMethod() {
-        return Server.getServerInstance(0, false).getCurrentHeader().getRequesttype();
+        return Server.getInstance(0, false).getCurrentHeader().getRequesttype();
     }
 
     public boolean isGetSet(String getparam) {
@@ -33,7 +33,7 @@ public class PythonApi {
     }
 
     public String URLdecode(String encoded) {
-        return Utils.URLdecode(encoded);
+        return MiscUtils.URLdecode(encoded);
     }
 
     public String base64decode(String b64) {

@@ -1,5 +1,7 @@
 package me.felixnaumann.fwebserver;
 
+import me.felixnaumann.fwebserver.server.Server;
+
 public class FWebServer {
 
     private static boolean silenceflag = false;
@@ -32,7 +34,7 @@ public class FWebServer {
             running = true;
             try {
                 int port = Integer.parseInt(args[args.length - 1]);
-                Server.getServerInstance(port, silenceflag);
+                Server.getInstance(port, silenceflag);
             } catch (NumberFormatException e) {
                 System.out.println("Invalid port number");
                 System.exit(0);

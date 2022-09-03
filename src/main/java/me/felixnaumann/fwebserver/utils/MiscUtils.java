@@ -1,4 +1,4 @@
-package me.felixnaumann.fwebserver;
+package me.felixnaumann.fwebserver.utils;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
@@ -11,7 +11,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
 
-public class Utils {
+public class MiscUtils {
 
     public static String newRequestId() {
         SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss:SSS");

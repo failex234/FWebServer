@@ -1,5 +1,6 @@
 package me.felixnaumann.fwebserver;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -16,7 +17,7 @@ public class ServerConfig {
     private boolean suppressversion;
     private boolean nofileindex;
 
-    void createNewConfig() {
+    public void createNewConfig() {
         customkeywords = new HashMap<>();
         customheader = new HashMap<>();
         indexfiles = new ArrayList<>();
@@ -54,16 +55,16 @@ public class ServerConfig {
         this.wwwroot = wwwroot;
     }
 
-    public String getAccesslog() {
-        return accesslog;
+    public File getAccesslog() {
+        return new File(accesslog);
     }
 
     public void setAccesslog(String accesslog) {
         this.accesslog = accesslog;
     }
 
-    public String getErrorlog() {
-        return errorlog;
+    public File getErrorlog() {
+        return new File(errorlog);
     }
 
     public void setErrorlog(String errorlog) {
@@ -102,6 +103,10 @@ public class ServerConfig {
         } else {
             return "no";
         }
+    }
+
+    public File getConfigFile() {
+        return new File("server.json");
     }
 
     public boolean isVersionSuppressed() {
