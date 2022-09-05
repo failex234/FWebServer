@@ -1,6 +1,6 @@
 package me.felixnaumann.fwebserver.utils;
 
-import me.felixnaumann.fwebserver.ClientHeader;
+import me.felixnaumann.fwebserver.model.ClientHeader;
 import me.felixnaumann.fwebserver.server.Server;
 
 public class HtmlUtils {

@@ -1,8 +1,8 @@
 package me.felixnaumann.fwebserver.server;
 
-import me.felixnaumann.fwebserver.ClientHeader;
+import me.felixnaumann.fwebserver.model.ClientHeader;
 import me.felixnaumann.fwebserver.GenericServerRunnable;
-import me.felixnaumann.fwebserver.ServerConfig;
+import me.felixnaumann.fwebserver.model.ServerConfig;
 import me.felixnaumann.fwebserver.utils.*;
 
 import java.io.*;
@@ -16,7 +16,7 @@ public class Server {
 
     int port;
     public static String SERVERNAME = "FWebServer";
-    public static final String VERSION = "0.3.1";
+    public static final String SERVERVERSION = "0.3.1";
     private ServerSocket mainsocket;
     private Thread incoming;
 
@@ -27,6 +27,7 @@ public class Server {
     public static HashMap<Integer, String> httpstatusCodes = new HashMap<>();
 
     public static ServerConfig config;
+    public static boolean configloaded;
 
     //TODO: Move all header related stuff to socket thread.
     public static ClientHeader currentHeader = null;
@@ -46,6 +47,10 @@ public class Server {
         if (srv == null) {
             srv = new Server(port, silenced);
         }
+        return srv;
+    }
+
+    public static Server getInstance() {
         return srv;
     }
 
@@ -76,7 +81,7 @@ public class Server {
         prepareHTMLProcessor();
         this.port = port;
         LogUtils.setSilenced(silenced);
-        start();
+        startServer();
     }
 
     //TODO: uniform method for setting the whole respond header
@@ -89,6 +94,7 @@ public class Server {
         this.SERVERNAME = config.getServername();
 
         FileUtils.createWwwRoot(config.getWwwroot(), config);
+        configloaded = true;
     }
 
     /**
@@ -98,7 +104,7 @@ public class Server {
      */
     private void prepareHTMLProcessor() {
         specialkeywords.put("useragent", ClientHeader::getUseragent);
-        specialkeywords.put("serverversion", header -> VERSION);
+        specialkeywords.put("serverversion", header -> SERVERVERSION);
         specialkeywords.put("servername", header -> SERVERNAME);
         specialkeywords.put("jreversion", header -> System.getProperty("java.version"));
         specialkeywords.put("osname", header -> System.getProperty("os.name") + " " + System.getProperty("os.version") + " " + System.getProperty("os.arch"));
@@ -141,7 +147,7 @@ public class Server {
     /**
      * starts the main thread
      */
-    private void start() {
+    private void startServer() {
         try {
             mainsocket = new ServerSocket(port);
             incoming = new Thread(new IncomingThread(mainsocket, port));
@@ -149,6 +155,22 @@ public class Server {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+
+    /**
+     * Tries to gracefully stop the server.
+     */
+    public void stopServer() {
+        try {
+            LogUtils.Consolelog("Trying to stop server");
+            mainsocket.close();
+            incoming.interrupt();
+        }
+        catch (IOException ignored) {
+
+        }
+        System.exit(0);
     }
 
 

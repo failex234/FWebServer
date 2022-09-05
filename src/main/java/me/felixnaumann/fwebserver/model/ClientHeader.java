@@ -1,4 +1,4 @@
-package me.felixnaumann.fwebserver;
+package me.felixnaumann.fwebserver.model;
 
 import me.felixnaumann.fwebserver.utils.MiscUtils;
 

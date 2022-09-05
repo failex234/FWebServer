@@ -1,6 +1,6 @@
 package me.felixnaumann.fwebserver.server;
 
-import me.felixnaumann.fwebserver.ClientHeader;
+import me.felixnaumann.fwebserver.model.ClientHeader;
 import me.felixnaumann.fwebserver.utils.*;
 
 import java.io.*;
@@ -24,6 +24,7 @@ public class SocketThread implements Runnable {
                 try {
                     BufferedReader br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                     BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8));
+                    DataOutputStream binaryOut = new DataOutputStream(socket.getOutputStream());
 
                     ArrayList<String> req = new ArrayList<>();
 
@@ -94,7 +95,7 @@ public class SocketThread implements Runnable {
                                             "<!doctype html>\n<html>\n<body>\n",
                                             "<center><h1>403 Forbidden</h1></center>",
                                             "<center><h3>You're not allowed to access " + header.getRequesteddocument().replace("..", "") + "!</center></h3>",
-                                            "\n<center><hr>\n " + Server.SERVERNAME + (!Server.config.isVersionSuppressed() ? "/" + Server.VERSION : "") + " on " + System.getProperty("os.name") + " at " + header.getHost() + "</center>",
+                                            "\n<center><hr>\n " + Server.SERVERNAME + (!Server.config.isVersionSuppressed() ? "/" + Server.SERVERVERSION : "") + " on " + System.getProperty("os.name") + " at " + header.getHost() + "</center>",
                                             "\n</body>",
                                             "\n</html>");
                                     LogUtils.Consolelogf("[%s] <= 403 Forbidden\n", socket.getInetAddress().toString());
@@ -119,9 +120,12 @@ public class SocketThread implements Runnable {
                                         }
                                         Server.scriptresults.remove(reqid);
                                         Server.scriptheader.remove(reqid);
-                                    } else {
+                                    } else if (MiscUtils.getFileExtension(header.getRequesteddocument()).endsWith(".html")){
                                         ServerUtils.writeResponse(bw, 200,
                                                 HtmlUtils.processHTML(FileUtils.readFilePlain(header.getRequesteddocument()), header));
+                                        LogUtils.Consolelogf("[%s] <= 200 OK\n", socket.getInetAddress().toString());
+                                    } else {
+                                        ServerUtils.writeBinaryResponse(binaryOut, 200, FileUtils.readBinaryFile(header.getRequesteddocument()));
                                         LogUtils.Consolelogf("[%s] <= 200 OK\n", socket.getInetAddress().toString());
                                     }
                                 } else if (fileexist == 2){
@@ -129,7 +133,7 @@ public class SocketThread implements Runnable {
                                             "<!doctype html>\n<html>\n<body>\n",
                                             "<center><h1>403 Forbidden</h1></center>",
                                             "<center><h3>You're not allowed to access " + header.getRequesteddocument().replace("..", "") + "!</center></h3>",
-                                            "\n<center><hr>\n " + Server.SERVERNAME + (!Server.config.isVersionSuppressed() ? "/" + Server.VERSION : "") + " on " + System.getProperty("os.name") + " at " + header.getHost() + "</center>",
+                                            "\n<center><hr>\n " + Server.SERVERNAME + (!Server.config.isVersionSuppressed() ? "/" + Server.SERVERVERSION : "") + " on " + System.getProperty("os.name") + " at " + header.getHost() + "</center>",
                                             "\n</body>",
                                             "\n</html>");
                                     LogUtils.Consolelogf("[%s] <= 403 Forbidden\n", socket.getInetAddress().toString());
@@ -144,7 +148,7 @@ public class SocketThread implements Runnable {
                                             "<!doctype html>\n<html>\n<body>\n",
                                             "<center><h1>404 Not Found</h1></center>",
                                             "<center><h3>The requested url " + header.getRequesteddocument().replace("..", "") + " was not found!</center></h3>",
-                                            "\n<center><hr>\n " + Server.SERVERNAME + (!Server.config.isVersionSuppressed() ? "/" + Server.VERSION : "") + " on " + System.getProperty("os.name") + " at " + header.getHost() + "</center>",
+                                            "\n<center><hr>\n " + Server.SERVERNAME + (!Server.config.isVersionSuppressed() ? "/" + Server.SERVERVERSION : "") + " on " + System.getProperty("os.name") + " at " + header.getHost() + "</center>",
                                             "\n</body>",
                                             "\n</html>");
                                     LogUtils.Consolelogf("[%s] <= 404 Not Found\n", socket.getInetAddress().toString());
@@ -159,7 +163,7 @@ public class SocketThread implements Runnable {
                                     "<!doctype html>\n<html>\n<body>\n",
                                     "<center><h1>501 Not Implemented</h1></center>",
                                     "<center><h3>Request " + header.getRequesttype() + " not (yet) supported</center></h3>",
-                                    "\n<center><hr>\n " + Server.SERVERNAME + (!Server.config.isVersionSuppressed() ? "/" + Server.VERSION : "") + " on " + System.getProperty("os.name") + " at " + header.getHost() + "</center>",
+                                    "\n<center><hr>\n " + Server.SERVERNAME + (!Server.config.isVersionSuppressed() ? "/" + Server.SERVERVERSION : "") + " on " + System.getProperty("os.name") + " at " + header.getHost() + "</center>",
                                     "\n</body>",
                                     "\n</html>");
                             break;

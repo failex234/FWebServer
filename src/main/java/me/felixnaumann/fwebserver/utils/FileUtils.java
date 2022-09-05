@@ -3,9 +3,9 @@ package me.felixnaumann.fwebserver.utils;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import me.felixnaumann.fwebserver.BuiltIn;
-import me.felixnaumann.fwebserver.ClientHeader;
+import me.felixnaumann.fwebserver.model.ClientHeader;
 import me.felixnaumann.fwebserver.server.Server;
-import me.felixnaumann.fwebserver.ServerConfig;
+import me.felixnaumann.fwebserver.model.ServerConfig;
 import org.python.util.PythonInterpreter;
 
 import java.io.*;
@@ -15,6 +15,11 @@ import java.util.Date;
 import java.util.HashMap;
 
 public class FileUtils {
+
+    /**
+     * Read the server config
+     * @return the server config as an object
+     */
     public static ServerConfig getServerConfig() {
         Gson gsoninstance = null;
         ServerConfig config;
@@ -53,6 +58,11 @@ public class FileUtils {
         return config;
     }
 
+    /**
+     * Create the wwwroot if it doesn't exist yet
+     * @param wwwroot the path to the wwwroot
+     * @param config the servers configuration
+     */
     public static void createWwwRoot(String wwwroot, ServerConfig config) {
         File webroot = new File(wwwroot);
         if (!webroot.exists()) {
@@ -77,8 +87,7 @@ public class FileUtils {
                 bw = new BufferedWriter(new FileWriter(dynfile));
                 bw.write(dynfilecontents);
                 bw.close();
-            }
-            catch (IOException e) {
+            } catch (IOException e) {
                 e.printStackTrace();
             }
 
@@ -94,44 +103,85 @@ public class FileUtils {
 
     /**
      * Converts the number of bytes into the correct unit
+     *
      * @param size the number of bytes
      * @return the correctly formatted file size
      */
-    public static String convertToNearestUnit(long size) {
+    public static String convertToNearestSIUnit(long size) {
         StringBuilder endstring = new StringBuilder();
         double convertedsize;
-        endstring.append("SIZE");
-        if (size < 99L) {
+        endstring.append("SIZE ");
+        if (size < 999L) {
             convertedsize = (double) size;
             endstring.append("B");
-        } else if (size > 99L && size < 100000L) {
+        } else if (size > 999L && size < 999999L) {
             convertedsize = (double) size / 1000D;
             endstring.append("K");
-        } else if(size > 99999L && size < 100000000L) {
+        } else if (size > 999999L && size < 999999999L) {
             convertedsize = (double) size / 1000000D;
             endstring.append("M");
-        } else if (size > 99999999L && size < 100000000000L) {
+        } else if (size > 999999999L && size < 999999999999L) {
             convertedsize = (double) size / 100000000D;
             endstring.append("G");
-        } else if (size > 99999999999L && size < 100000000000000L) {
+        } else {
             convertedsize = (double) size / 1000000000000D;
             endstring.append("T");
-        } else {
-            convertedsize = (double) size / 10000000000000000D;
-            endstring.append("P");
         }
 
-        if (convertedsize == (long) convertedsize) return endstring.toString().replace("SIZE", String.format("%d", (int) convertedsize));
+        if (convertedsize == (long) convertedsize)
+            return endstring.toString().replace("SIZE", String.format("%d", (int) convertedsize));
         return endstring.toString().replace("SIZE", String.format("%.2f", convertedsize));
     }
 
     /**
-     * Read a file in text mode (CURRENTLY NOT USABLE FOR BINARY FILES)
+     * Converts the number of bytes into the correct unit
+     *
+     * @param size the number of bytes
+     * @return the correctly formatted file size
+     */
+    public static String convertToNearestBinaryUnit(long size) {
+        StringBuilder endstring = new StringBuilder();
+        double convertedsize;
+        endstring.append("SIZE ");
+        if (size < 1024L) {
+            convertedsize = (double) size;
+            endstring.append("B");
+        } else if (size > 1024L && size < 1048576L) {
+            convertedsize = (double) size / 1024D;
+            endstring.append("KiB");
+        } else if (size > 104857L && size < 1073741824L) {
+            convertedsize = (double) size / 1048576D;
+            endstring.append("MiB");
+        } else if (size > 1073741824L && size < 1099511627776L) {
+            convertedsize = (double) size / 1073741824D;
+            endstring.append("GiB");
+        } else {
+            convertedsize = (double) size / 1099511627776D;
+            endstring.append("TiB");
+        }
+
+        if (convertedsize == (long) convertedsize)
+            return endstring.toString().replace("SIZE", String.format("%d", (int) convertedsize));
+        return endstring.toString().replace("SIZE", String.format("%.2f", convertedsize));
+    }
+
+    /**
+     * Convert the wanted size to a representation in SI- and binary units.
+     * @param size the size in bytes to convert
+     * @return the size converted into both units
+     */
+    public static String convertToSiAndBinary(long size) {
+        if (size < 1000) return convertToNearestSIUnit(size);
+        else return convertToNearestSIUnit(size) + " (" + convertToNearestBinaryUnit(size) + ")";
+    }
+
+    /**
+     * Read a file in text mode
+     *
      * @param filename the file to read
      * @return the file contents
      */
     public static String readFilePlain(String filename) {
-        //TODO: Read binary on non plain-text file
         if (filename.startsWith("..") || filename.startsWith("/")) {
             filename = filename.replaceFirst("/", "").replace("..", "");
         }
@@ -143,7 +193,7 @@ public class FileUtils {
             BufferedReader br = new BufferedReader(new FileReader(toberead));
             String line;
 
-            while((line = br.readLine()) != null) {
+            while ((line = br.readLine()) != null) {
                 tempstring.append(line);
                 tempstring.append("\n");
             }
@@ -157,6 +207,7 @@ public class FileUtils {
 
     /**
      * Tries to read the wanted scriptfile. Prints out an error to the browser when the read fails
+     *
      * @param file the scriptfile
      * @return contents of file
      */
@@ -166,7 +217,7 @@ public class FileUtils {
             BufferedReader br = new BufferedReader(new FileReader(file));
             String line;
 
-            while((line = br.readLine()) != null) {
+            while ((line = br.readLine()) != null) {
                 tempstring.append(line);
                 tempstring.append("\n");
             }
@@ -177,8 +228,35 @@ public class FileUtils {
         }
     }
 
+
+    /**
+     * Read a binary file instead of a plain-text file
+     * @param filename the path to the file
+     * @return the files' contents as a byte array
+     */
+    //TODO: Make this method the primary method for reading files (do not differentiate between plain-text and binary)
+    public static byte[] readBinaryFile(String filename) {
+        if (filename.startsWith("..") || filename.startsWith("/")) {
+            filename = filename.replaceFirst("/", "").replace("..", "");
+        }
+        File infile = Server.wantedfile;
+        try (
+                InputStream inputStream = new BufferedInputStream(new FileInputStream(infile));
+        ) {
+                byte[] buffer = new byte[(int) infile.length()];
+                inputStream.read(buffer);
+
+                return buffer;
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+        return new byte[0];
+    }
+
     /**
      * list al the files in a given directory
+     *
      * @param path
      * @param header
      * @return
@@ -195,24 +273,48 @@ public class FileUtils {
         for (File dir : filelist) {
             if (dir.isFile()) continue;
             Date lastmodified = new Date(dir.lastModified());
-            html.append("\n\t\t\t<tr>\n\t\t\t\t<td>").append("<a href=\"").append(path).append("/").append(dir.getName()).append("\">").append(dir.getName()).append("</a></td><td>").append(lastmodified.toString()).append("</td><td>").append("-</td>\n\t\t\t</tr>");
+            html.append("\n\t\t\t<tr>\n\t\t\t\t<td>")
+                    .append("<a href=\"")
+                    .append(path)
+                    .append("/")
+                    .append(dir.getName())
+                    .append("\">")
+                    .append(dir.getName())
+                    .append("</a></td><td>")
+                    .append(lastmodified)
+                    .append("</td><td>")
+                    .append("-</td>\n\t\t\t</tr>");
         }
 
         for (File f : filelist) {
             if (f.isDirectory()) continue;
             Date lastmodified = new Date(f.lastModified());
-            html.append("\n\t\t\t<tr>\n\t\t\t\t<td>").append("<a href=\"").append(path).append("/").append(f.getName()).append("\">").append(f.getName()).append("</a></td><td>").append(lastmodified.toString()).append("</td><td>").append(convertToNearestUnit(f.length())).append("</td>\n\t\t\t</tr>");
+            html.append("\n\t\t\t<tr>\n\t\t\t\t<td>")
+                    .append("<a href=\"")
+                    .append(path)
+                    .append("/")
+                    .append(f.getName())
+                    .append("\">")
+                    .append(f.getName())
+                    .append("</a></td><td>")
+                    .append(lastmodified)
+                    .append("</td><td>")
+                    .append(convertToSiAndBinary(f.length()))
+                    .append("</td>\n\t\t\t</tr>");
         }
         html.append("\n\t\t</table>");
-        html.append("\n\t\t<hr>\n\t\t$(servername)"+ (!Server.config.isVersionSuppressed() ? "/" + Server.VERSION : "")+"\n\t</body>\n</html>");
+        html.append("\n\t\t<hr>\n\t\t$(servername)")
+                .append(!Server.config.isVersionSuppressed() ? "/" + Server.SERVERVERSION : "")
+                .append("\n\t</body>\n</html>");
 
         return HtmlUtils.processHTML(html.toString(), header);
     }
 
     /**
      * 0 = not exist, 1 = exists, 2 = no permissions, 3 = directory
-     *
+     * <p>
      * checks if a wanted file exists
+     *
      * @param filename the file to check
      * @return status code of the file
      */
@@ -221,7 +323,7 @@ public class FileUtils {
             filename = filename.replace("..", "").replaceFirst("/", "");
         }
 
-        File temp = new File( Server.config.getWwwroot() + "/" + filename);
+        File temp = new File(Server.config.getWwwroot() + "/" + filename);
         File temp2 = new File(Server.currdir + "/" + filename);
 
         if (!Server.blacklist.contains(filename)) {
@@ -229,7 +331,7 @@ public class FileUtils {
                 if (temp.exists()) Server.currdir = temp.getAbsolutePath();
                 else Server.currdir = temp2.getAbsolutePath();
                 return 3;
-            } else if (temp.exists() || temp2.exists()){
+            } else if (temp.exists() || temp2.exists()) {
                 if (temp.exists()) Server.wantedfile = new File(temp.getAbsolutePath());
                 else Server.wantedfile = new File(temp2.getAbsolutePath());
 
@@ -247,10 +349,11 @@ public class FileUtils {
 
     /**
      * Gets the parent directory of a file
+     *
      * @param currdocument the file that we want to know the parent directory of
      * @return the parent directory of a file or ..
      */
-    public static  String getParentDirectory(String currdocument) {
+    public static String getParentDirectory(String currdocument) {
         int slashpos = 0;
         for (int i = currdocument.length() - 1; i > 0; i--) {
             if (currdocument.charAt(i) == '/') {
@@ -264,9 +367,10 @@ public class FileUtils {
 
     /**
      * reads, converts html to python and then interprets the python.
+     *
      * @param scriptfile scriptfile to be run
-     * @param relpath the relative path to the scriptfile (from the wwwroot directory)
-     * @param rqid the request id to know which result corresponds to which client / request
+     * @param relpath    the relative path to the scriptfile (from the wwwroot directory)
+     * @param rqid       the request id to know which result corresponds to which client / request
      * @return the html of the interpreted scriptfile
      */
     public static String interpretScriptFile(File scriptfile, String relpath, String rqid) {
@@ -280,7 +384,7 @@ public class FileUtils {
                 int startidx = 0, endidx = 0;
 
                 //Extract html areas from script file
-                while(contents.contains("\"\"\"html")) {
+                while (contents.contains("\"\"\"html")) {
                     for (int i = 0; i < contents.length(); i++) {
                         if (i < contents.length() - 7) {
                             if (contents.substring(i, i + 7).equals("\"\"\"html")) {
@@ -315,8 +419,7 @@ public class FileUtils {
 
                 return Server.scriptresults.get(rqid).toString();
             }
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
         return "";
