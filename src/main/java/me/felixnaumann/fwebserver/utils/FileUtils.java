@@ -66,7 +66,7 @@ public class FileUtils {
     public static void createWwwRoot(String wwwroot, ServerConfig config) {
         File webroot = new File(wwwroot);
         if (!webroot.exists()) {
-            LogUtils.Consolelogf("The wwwroot path \"%s\" doesn't exist. creating it for you...\n", webroot.getAbsolutePath());
+            LogUtils.consolelogf("The wwwroot path \"%s\" doesn't exist. creating it for you...\n", webroot.getAbsolutePath());
             webroot.mkdir();
             File aboutfile = new File(wwwroot + "/about2.html");
             File indexfile = new File(wwwroot + "/index.html");

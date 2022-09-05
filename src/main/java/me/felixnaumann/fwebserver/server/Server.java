@@ -6,15 +6,14 @@ import me.felixnaumann.fwebserver.model.ServerConfig;
 import me.felixnaumann.fwebserver.utils.*;
 
 import java.io.*;
+import java.net.BindException;
 import java.net.ServerSocket;
 import java.net.URISyntaxException;
 import java.util.*;
 
-//TODO: pyfs zu python: Einrückung fixen!
-//TODO: add optional setting to inject html tags into the response
 public class Server {
 
-    int port;
+    public static int port;
     public static String SERVERNAME = "FWebServer";
     public static final String SERVERVERSION = "0.3.1";
     private ServerSocket mainsocket;
@@ -24,7 +23,6 @@ public class Server {
     private ArrayList<String> indexfiles = new ArrayList<>();
 
     public static HashMap<String, GenericServerRunnable> specialkeywords = new HashMap<>();
-    public static HashMap<Integer, String> httpstatusCodes = new HashMap<>();
 
     public static ServerConfig config;
     public static boolean configloaded;
@@ -58,23 +56,6 @@ public class Server {
     private Server(int port, boolean silenced) {
         currdir = "";
         wantedfilemime = "text/html";
-        httpstatusCodes.put(200, "OK");
-        httpstatusCodes.put(201, "Created");
-        httpstatusCodes.put(202, "Accepted");
-        httpstatusCodes.put(204, "No Centent");
-        httpstatusCodes.put(205, "Reset Content");
-        httpstatusCodes.put(206, "Partial Content");
-        httpstatusCodes.put(301, "Moved Permanently");
-        httpstatusCodes.put(302, "Found (Moved Temporarily)");
-        httpstatusCodes.put(304, "Not Modified");
-        httpstatusCodes.put(400, "Bad Request");
-        httpstatusCodes.put(401, "Unauthorized");
-        httpstatusCodes.put(403, "Forbidden");
-        httpstatusCodes.put(404, "Not Found");
-        httpstatusCodes.put(411, "Length Required");
-        httpstatusCodes.put(413, "Request Entity Too Large");
-        httpstatusCodes.put(500, "Internal Server Error");
-        httpstatusCodes.put(501, "Not Implemented");
 
         prepareConfig();
         LogUtils.prepareLog();
@@ -84,7 +65,6 @@ public class Server {
         startServer();
     }
 
-    //TODO: uniform method for setting the whole respond header
     /**
      * Prepares the server's config. Either by reading an existing config or creating a new one.
      */
@@ -152,6 +132,9 @@ public class Server {
             mainsocket = new ServerSocket(port);
             incoming = new Thread(new IncomingThread(mainsocket, port));
             incoming.start();
+        } catch (BindException be) {
+            System.err.printf("Cannot bind port :%d. Port may already be in use.\n", port);
+            System.exit(1);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -163,7 +146,7 @@ public class Server {
      */
     public void stopServer() {
         try {
-            LogUtils.Consolelog("Trying to stop server");
+            LogUtils.consolelog("Trying to stop server");
             mainsocket.close();
             incoming.interrupt();
         }

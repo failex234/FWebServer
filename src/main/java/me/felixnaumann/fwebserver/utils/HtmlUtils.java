@@ -1,7 +1,11 @@
 package me.felixnaumann.fwebserver.utils;
 
 import me.felixnaumann.fwebserver.model.ClientHeader;
+import me.felixnaumann.fwebserver.model.HttpStatus;
 import me.felixnaumann.fwebserver.server.Server;
+
+import java.io.BufferedWriter;
+import java.io.IOException;
 
 public class HtmlUtils {
     /**

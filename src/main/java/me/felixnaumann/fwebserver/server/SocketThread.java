@@ -39,12 +39,7 @@ public class SocketThread implements Runnable {
                     Server.setCurrentHeader(header);
 
                     if(header.isHeadercorrupt()) {
-                        ServerUtils.writeResponse(bw, 400,
-                                "<!doctype html>\n<html>\n<body>",
-                                "<center><h1>400 Bad Request</h1></center>",
-                                "<center><h3>Invalid request header!</center></h3>",
-                                "</body>",
-                                "</html>");
+                        ServerUtils.sendErrorResponse(bw, 400, header.getHost(), "");
                     }
 
                     switch (header.getRequesttype()) {
@@ -53,8 +48,7 @@ public class SocketThread implements Runnable {
                         case "DELETE":
                         case "PATCH":
                         case "GET":
-                            LogUtils.Consolelogf("[%s] %s %s\n", socket.getInetAddress().toString(), header.getRequesttype(), header.getRequesteddocument());
-                            LogUtils.logAccess("[" + socket.getInetAddress().toString() + "] " + header.getRequesttype() + " " + header.getRequesteddocument());
+                            LogUtils.logRequest(header.getRequesttype(), socket.getInetAddress().toString(), header.getRequesteddocument());
                             if (header.getRequesteddocument().equals("/") || FileUtils.fileExists(header.getRequesteddocument()) == 3) {
                                 boolean indexfound = false;
                                 String contents = "";
@@ -70,35 +64,29 @@ public class SocketThread implements Runnable {
                                 if (!indexfound && !Server.config.isNofileindex()) {
                                     contents = FileUtils.listFiles(header.getRequesteddocument(),header);
                                     ServerUtils.writeResponse(bw, 200, contents);
-                                    LogUtils.Consolelogf("[%s] <= 200 OK\n", socket.getInetAddress().toString());
+                                    LogUtils.logResponse(200, socket.getInetAddress().toString());
                                 } else if (indexfound) {
                                     if (MiscUtils.getFileExtension(indexfilename).equals("pyfs")) {
                                         String reqid = MiscUtils.newRequestId();
                                         try {
                                             contents = FileUtils.interpretScriptFile(new File(header.getRequesteddocument() + "/index.pyfs"), header.getRequesteddocument() + "/index.pyfs", reqid);
                                             ServerUtils.writeResponse(bw, 200, contents);
-                                            LogUtils.Consolelogf("[%s] <= 200 OK\n", socket.getInetAddress().toString());
+                                            LogUtils.logResponse(200, socket.getInetAddress().toString());
                                         }
                                         catch (Exception e) {
                                             String error = MiscUtils.buildErrorPage(e, indexfilename);
                                             ServerUtils.writeResponse(bw, 500, error);
-                                            LogUtils.Consolelogf("[%s] <= 500 Internal Server Error\n", socket.getInetAddress().toString());
+                                            LogUtils.logResponse(500, socket.getInetAddress().toString());
                                         }
                                         Server.scriptresults.remove(reqid);
                                         Server.scriptheader.remove(reqid);
                                     } else {
                                         ServerUtils.writeResponse(bw, 200, contents);
-                                        LogUtils.Consolelogf("[%s] <= 200 OK\n", socket.getInetAddress().toString());
+                                        LogUtils.logResponse(200, socket.getInetAddress().toString());
                                     }
                                 } else {
-                                    ServerUtils.writeResponse(bw, 403,
-                                            "<!doctype html>\n<html>\n<body>\n",
-                                            "<center><h1>403 Forbidden</h1></center>",
-                                            "<center><h3>You're not allowed to access " + header.getRequesteddocument().replace("..", "") + "!</center></h3>",
-                                            "\n<center><hr>\n " + Server.SERVERNAME + (!Server.config.isVersionSuppressed() ? "/" + Server.SERVERVERSION : "") + " on " + System.getProperty("os.name") + " at " + header.getHost() + "</center>",
-                                            "\n</body>",
-                                            "\n</html>");
-                                    LogUtils.Consolelogf("[%s] <= 403 Forbidden\n", socket.getInetAddress().toString());
+                                    ServerUtils.sendErrorResponse(bw, 403, header.getHost(), header.getRequesteddocument());
+                                    LogUtils.logResponse(403, socket.getInetAddress().toString());
                                 }
 
 
@@ -111,61 +99,40 @@ public class SocketThread implements Runnable {
                                         try {
                                             contents = FileUtils.interpretScriptFile(new File(header.getRequesteddocument()), header.getRequesteddocument(), reqid);
                                             ServerUtils.writeResponse(bw, 200, HtmlUtils.processHTML(contents, header));
-                                            LogUtils.Consolelogf("[%s] <= 200 OK\n", socket.getInetAddress().toString());
+                                            LogUtils.logResponse(200, socket.getInetAddress().toString());
                                         }
                                         catch (Exception e) {
                                             String error = MiscUtils.buildErrorPage(e, header.getRequesteddocument());
                                             ServerUtils.writeResponse(bw, 500, error);
-                                            LogUtils.Consolelogf("[%s] <= 500 Internal Server Error\n", socket.getInetAddress().toString());
+                                            LogUtils.logResponse(500, socket.getInetAddress().toString());
                                         }
                                         Server.scriptresults.remove(reqid);
                                         Server.scriptheader.remove(reqid);
                                     } else if (MiscUtils.getFileExtension(header.getRequesteddocument()).endsWith(".html")){
                                         ServerUtils.writeResponse(bw, 200,
                                                 HtmlUtils.processHTML(FileUtils.readFilePlain(header.getRequesteddocument()), header));
-                                        LogUtils.Consolelogf("[%s] <= 200 OK\n", socket.getInetAddress().toString());
+                                        LogUtils.logResponse(200, socket.getInetAddress().toString());
                                     } else {
                                         ServerUtils.writeBinaryResponse(binaryOut, 200, FileUtils.readBinaryFile(header.getRequesteddocument()));
-                                        LogUtils.Consolelogf("[%s] <= 200 OK\n", socket.getInetAddress().toString());
+                                        LogUtils.logResponse(200, socket.getInetAddress().toString());
                                     }
                                 } else if (fileexist == 2){
-                                    ServerUtils.writeResponse(bw, 403,
-                                            "<!doctype html>\n<html>\n<body>\n",
-                                            "<center><h1>403 Forbidden</h1></center>",
-                                            "<center><h3>You're not allowed to access " + header.getRequesteddocument().replace("..", "") + "!</center></h3>",
-                                            "\n<center><hr>\n " + Server.SERVERNAME + (!Server.config.isVersionSuppressed() ? "/" + Server.SERVERVERSION : "") + " on " + System.getProperty("os.name") + " at " + header.getHost() + "</center>",
-                                            "\n</body>",
-                                            "\n</html>");
-                                    LogUtils.Consolelogf("[%s] <= 403 Forbidden\n", socket.getInetAddress().toString());
-                                    LogUtils.logError("[" + socket.getInetAddress().toString() + "] <= 403 Forbidden " + header.getRequesteddocument());
+                                    ServerUtils.sendErrorResponse(bw, 403, header.getHost(), header.getRequesteddocument());
+                                    LogUtils.logResponse(403, socket.getInetAddress().toString(), header.getRequesteddocument());
                                 } else if (fileexist == 3) {
                                     ServerUtils.writeResponse(bw, 200,
                                             "<!doctype html>\n",
                                             FileUtils.listFiles(header.getRequesteddocument(), header));
-                                    LogUtils.Consolelogf("[%s] <= 200 OK\n", socket.getInetAddress().toString());
+                                    LogUtils.logResponse(200, socket.getInetAddress().toString());
                                 } else {
-                                    ServerUtils.writeResponse(bw, 404,
-                                            "<!doctype html>\n<html>\n<body>\n",
-                                            "<center><h1>404 Not Found</h1></center>",
-                                            "<center><h3>The requested url " + header.getRequesteddocument().replace("..", "") + " was not found!</center></h3>",
-                                            "\n<center><hr>\n " + Server.SERVERNAME + (!Server.config.isVersionSuppressed() ? "/" + Server.SERVERVERSION : "") + " on " + System.getProperty("os.name") + " at " + header.getHost() + "</center>",
-                                            "\n</body>",
-                                            "\n</html>");
-                                    LogUtils.Consolelogf("[%s] <= 404 Not Found\n", socket.getInetAddress().toString());
-                                    LogUtils.logError("[" + socket.getInetAddress().toString() + "] <= 404 Not Found " + header.getRequesteddocument());
+                                    ServerUtils.sendErrorResponse(bw, 404, header.getHost(), header.getRequesteddocument());
+                                    LogUtils.logResponse(404, socket.getInetAddress().toString(), header.getRequesteddocument());
                                 }
                             }
                             break;
                         default:
-                            LogUtils.Consolelogf("[%s] %s %s\n", socket.getInetAddress(), header.getRequesttype(), header.getRequesteddocument());
-                            LogUtils.logError("[" + socket.getInetAddress() + "] <= 501 Not Implemented");
-                            ServerUtils.writeResponse(bw, 501,
-                                    "<!doctype html>\n<html>\n<body>\n",
-                                    "<center><h1>501 Not Implemented</h1></center>",
-                                    "<center><h3>Request " + header.getRequesttype() + " not (yet) supported</center></h3>",
-                                    "\n<center><hr>\n " + Server.SERVERNAME + (!Server.config.isVersionSuppressed() ? "/" + Server.SERVERVERSION : "") + " on " + System.getProperty("os.name") + " at " + header.getHost() + "</center>",
-                                    "\n</body>",
-                                    "\n</html>");
+                            LogUtils.logResponse(501, socket.getInetAddress().toString(), header.getRequesteddocument());
+                            ServerUtils.sendErrorResponse(bw, 501, header.getHost(), header.getRequesteddocument());
                             break;
                     }
 

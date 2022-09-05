@@ -1,5 +1,6 @@
 package me.felixnaumann.fwebserver.utils;
 
+import me.felixnaumann.fwebserver.model.HttpStatus;
 import me.felixnaumann.fwebserver.server.Server;
 
 import java.io.BufferedWriter;
@@ -18,7 +19,7 @@ public class ServerUtils {
      * @throws IOException
      */
     public static void writeResponse(BufferedWriter bw, int status, String... response) throws IOException {
-        String code = Server.httpstatusCodes.get(status);
+        String code = HttpStatus.getText(status);
 
         if (code != null) {
             bw.write("HTTP/1.1 " + status + " " + code + "\r\n");
@@ -45,13 +46,13 @@ public class ServerUtils {
 
     /**
      * Common method to write the response header
-     * @param bw The Buffered Writer to write to
+     * @param outputStream The output stream
      * @param status the http response status code
      * @param response the text that should also get sent in the response
      * @throws IOException
      */
     public static void writeBinaryResponse(DataOutputStream outputStream, int status, byte[] response) throws IOException {
-        String code = Server.httpstatusCodes.get(status);
+        String code = HttpStatus.getText(status);
 
         if (code != null) {
             outputStream.writeBytes("HTTP/1.1 " + status + " " + code + "\r\n");
@@ -72,6 +73,28 @@ public class ServerUtils {
 
         Server.wantedfilemime = "text/html";
         Server.wantedfileLastModified = null;
+    }
+
+    public static void sendErrorResponse(BufferedWriter bw, int status, String host, String doc) {
+        try {
+            ServerUtils.writeResponse(bw, status,
+                    String.format(
+                            "<!doctype html>\n<html>\n<body>\n" +
+                                    "<center><h1>%d %s</h1></center>\n" +
+                                    "<center><h3>%s</center></h3>\n" +
+                                    "<center><hr>%s on %s at %s</center>\n" +
+                                    "</body>\n</html>",
+                            status,
+                            HttpStatus.getText(status),
+                            HttpStatus.getStatus(status).getErrortext(doc),
+                            Server.SERVERNAME + (!Server.config.isVersionSuppressed() ? "/" + Server.SERVERVERSION : ""),
+                            System.getProperty("os.name"),
+                            host
+                            ));
+        }
+        catch (IOException ignored) {
+
+        }
     }
 
 

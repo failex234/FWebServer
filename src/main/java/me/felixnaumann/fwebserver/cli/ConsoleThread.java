@@ -2,14 +2,18 @@ package me.felixnaumann.fwebserver.cli;
 
 import me.felixnaumann.fwebserver.model.ConsoleCommand;
 import me.felixnaumann.fwebserver.server.Server;
+import me.felixnaumann.fwebserver.utils.ReflectionUtils;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.Scanner;
 
 public class ConsoleThread implements Runnable {
 
-    private String currdir = "";
+    public static String currdir = "";
 
     public static void runThread() {
         new Thread(new ConsoleThread()).start();
@@ -39,59 +43,20 @@ public class ConsoleThread implements Runnable {
             String inputString = in.nextLine();
             ConsoleCommand command = ConsoleCommand.buildCommand(inputString);
 
-            switch (command.getCommand()) {
-                case "version" -> System.out.printf("%s version %s\n", Server.SERVERNAME, Server.SERVERVERSION);
-                case "help" -> System.out.println("Not implemented yet");
-                case "ls" -> {
-                    if (command.hasArgs()) {
+            Method commandMethod = ReflectionUtils.getCliMethod(command.getCommand());
 
-                    }
-                    File[] filelist = (new File(currdir).listFiles());
-
-                    if (currdir.endsWith(Server.config.getWwwroot())) {
-                        System.out.println("Directory listing for /");
-                    } else {
-                        try {
-                            System.out.printf("Directory listing for %s:\n", currdir.replace(new File(Server.config.getWwwroot()).getCanonicalPath(), "").replace("\\", "/"));
-                        } catch (IOException e) {
-
-                        }
-                    }
-
-                    System.out.println("----------------------------");
-
-                    for (File file : filelist) {
-                        if (file.isFile()) continue;
-                        System.out.printf("[%s]\n", file.getName());
-                    }
-
-                    for (File file : filelist) {
-                        if (file.isDirectory()) continue;
-                        System.out.println(file.getName());
-                    }
-
-                    System.out.println("----------------------------");
+            try {
+                if (commandMethod != null) {
+                    if (!commandMethod.getAnnotation(CliCommandName.class).implemented())
+                        System.err.println("command not implemented yet");
+                    else commandMethod.invoke(null, command);
+                } else {
+                    System.err.println("command not found");
                 }
-                case "cd" -> {
-                    File newdir = new File(currdir + "/" + command.getNthArg(0));
-                    if (!newdir.exists()) {
-                        System.out.println("no such file or directory");
-                    } else if (newdir.isFile()) {
-                        System.out.println("you can't cd to a file");
-                    } else {
-                        try {
-                            if (newdir.getCanonicalPath().startsWith(new File(Server.config.getWwwroot()).getAbsolutePath())) {
-                                currdir = newdir.getCanonicalPath();
-                            } else {
-                                System.out.println("no such file or directory");
-                            }
-                        } catch (IOException e) {
-                            System.out.println("no such file or directory");
-                        }
-                    }
-                }
-                case "stop" -> Server.getInstance().stopServer();
-                default -> System.out.println("Command not found");
+            }
+            catch (Exception e) {
+                System.err.printf("An error occured while running command %s. Please check the stack trace.\n", command.getCommand());
+                e.printStackTrace();
             }
         }
     }
