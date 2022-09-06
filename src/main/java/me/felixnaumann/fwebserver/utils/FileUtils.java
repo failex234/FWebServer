@@ -3,7 +3,8 @@ package me.felixnaumann.fwebserver.utils;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import me.felixnaumann.fwebserver.BuiltIn;
-import me.felixnaumann.fwebserver.model.ClientHeader;
+import me.felixnaumann.fwebserver.model.Request;
+import me.felixnaumann.fwebserver.model.RequestHeader;
 import me.felixnaumann.fwebserver.server.Server;
 import me.felixnaumann.fwebserver.model.ServerConfig;
 import org.python.util.PythonInterpreter;
@@ -153,15 +154,15 @@ public class FileUtils {
         if (size < 1024L) {
             convertedsize = (double) size;
             endstring.append("B");
-        //size > 2^10 && size < 2^20
+            //size > 2^10 && size < 2^20
         } else if (size > 1024L && size < 1048576L) {
             convertedsize = (double) size / 1024D;
             endstring.append("KiB");
-        //size > 2^20 && size < 2^30
+            //size > 2^20 && size < 2^30
         } else if (size > 104857L && size < 1073741824L) {
             convertedsize = (double) size / 1048576D;
             endstring.append("MiB");
-        //size > 2^30 && size < 2^40
+            //size > 2^30 && size < 2^40
         } else if (size > 1073741824L && size < 1099511627776L) {
             convertedsize = (double) size / 1073741824D;
             endstring.append("GiB");
@@ -189,15 +190,10 @@ public class FileUtils {
     /**
      * Read a file in text mode
      *
-     * @param filename the file to read
+     * @param toberead the file to read
      * @return the file contents
      */
-    public static String readFilePlain(String filename) {
-        if (filename.startsWith("..") || filename.startsWith("/")) {
-            filename = filename.replaceFirst("/", "").replace("..", "");
-        }
-
-        File toberead = Server.wantedfile;
+    public static String readFilePlain(File toberead) {
         StringBuilder tempstring = new StringBuilder();
 
         try {
@@ -243,19 +239,15 @@ public class FileUtils {
     /**
      * Read a binary file instead of a plain-text file
      *
-     * @param filename the path to the file
+     * @param binaryFile the path to the file
      * @return the files' contents as a byte array
      */
     //TODO: Make this method the primary method for reading files (do not differentiate between plain-text and binary)
-    public static byte[] readBinaryFile(String filename) {
-        if (filename.startsWith("..") || filename.startsWith("/")) {
-            filename = filename.replaceFirst("/", "").replace("..", "");
-        }
-        File infile = Server.wantedfile;
+    public static byte[] readBinaryFile(File binaryFile) {
         try (
-                InputStream inputStream = new BufferedInputStream(new FileInputStream(infile));
+                InputStream inputStream = new BufferedInputStream(new FileInputStream(binaryFile));
         ) {
-            byte[] buffer = new byte[(int) infile.length()];
+            byte[] buffer = new byte[(int) binaryFile.length()];
             inputStream.read(buffer);
 
             return buffer;
@@ -272,7 +264,7 @@ public class FileUtils {
      * @param header
      * @return
      */
-    public static String listFiles(String path, ClientHeader header) {
+    public static String listFiles(String path, RequestHeader header) {
         File[] filelist = (new File(Server.config.getWwwroot() + "/" + path).listFiles());
         StringBuilder html = new StringBuilder();
         html.append("<!DOCTYPE html>\n<html lang=\"en\">\n\t<head>\n\t\t<meta http-equiv=\"Content-Type\" content=\"text-html; charset=utf-8\"/>\n\t\t<title>Index of ").append(path).append("</title>\n\t</head>\n\t<body>\n");
@@ -315,7 +307,7 @@ public class FileUtils {
         }
         html.append("\n\t\t</table>");
         html.append("\n\t\t<hr>\n\t\t$(servername)")
-                .append(!Server.config.isVersionSuppressed() ? "/" + Server.VERSION : "")
+                .append(!Server.config.isVersionSuppressed() ? "/" + Server.getInstance().VERSION : "")
                 .append("\n\t</body>\n</html>");
 
         return HtmlUtils.replaceKeywords(html.toString(), header);
@@ -329,7 +321,7 @@ public class FileUtils {
      * @param filename the file to check
      * @return status code of the file
      */
-    public static int fileExists(String filename) throws IOException {
+    public static int fileExists(String filename) {
         if (filename.startsWith("..") || filename.startsWith("/")) {
             filename = filename.replace("..", "").replaceFirst("/", "");
         }
@@ -343,14 +335,6 @@ public class FileUtils {
                 else Server.currdir = temp2.getAbsolutePath();
                 return 3;
             } else if (temp.exists() || temp2.exists()) {
-                if (temp.exists()) Server.wantedfile = new File(temp.getAbsolutePath());
-                else Server.wantedfile = new File(temp2.getAbsolutePath());
-
-                Server.wantedfilemime = Files.probeContentType(Server.wantedfile.toPath());
-                if (Server.wantedfilemime == null && filename.endsWith(".pyfs")) {
-                    Server.wantedfilemime = "text/html";
-                }
-                Server.wantedfileLastModified = new Date(Server.wantedfile.lastModified());
                 return 1;
             }
             return 0;
@@ -379,60 +363,70 @@ public class FileUtils {
     /**
      * reads, converts html to python and then interprets the python.
      *
-     * @param scriptfile scriptfile to be run
-     * @param relpath    the relative path to the scriptfile (from the wwwroot directory)
-     * @param rqid       the request id to know which result corresponds to which client / request
+     * @param scriptfile    scriptfile to be run
+     * @param relpath       the relative path to the scriptfile (from the wwwroot directory)
+     * @param clientRequest the corresponding request
      * @return the html of the interpreted scriptfile
      */
-    public static String interpretScriptFile(File scriptfile, String relpath, String rqid) {
-        Server.scriptresults.put(rqid, new StringBuilder());
-        Server.scriptheader.put(rqid, Server.currentHeader);
-        try {
-            if (fileExists(relpath) == 1) {
-                String contents = readScriptFile(Server.wantedfile);
+    public static String interpretScriptFile(File scriptfile, String relpath, Request clientRequest) {
+        Server.getInstance().scriptresults.put(clientRequest.getRequestId(), new StringBuilder());
+        Server.getInstance().scriptheader.put(clientRequest.getRequestId(), clientRequest.getRequestHeader());
+        if (fileExists(relpath) == 1) {
+            String contents = readScriptFile(scriptfile);
 
-                boolean htmlfound = false;
-                int startidx = 0, endidx = 0;
+            boolean htmlfound = false;
+            int startidx = 0, endidx = 0;
 
-                //Extract html areas from script file
-                for (int i = 0; i < contents.length(); i++) {
-                    if (i < contents.length() - 7) {
-                        //Find beginning tag
-                        if (contents.substring(i, i + 7).equals("\"\"\"html")) {
-                            htmlfound = true;
-                            startidx = i + 7;
-                            endidx = contents.length() - 1;
-                            //Find end tag
-                        } else if (contents.substring(i, i + 7).equals("html\"\"\"")) {
-                            if (htmlfound) {
-                                endidx = i - 1;
-                                contents = MiscUtils.strCutAndConvert(contents, startidx, endidx, MiscUtils.getCurrentLine(contents, i));
-                                htmlfound = false;
-                                break;
-                            } else {
-                                //Count newlines to get the line number
-                                String linecounttemp = contents.substring(0, i + 1);
-                                int cnt = MiscUtils.countChar(linecounttemp, '\n') + 1;
+            //Extract html areas from script file
+            for (int i = 0; i < contents.length(); i++) {
+                if (i < contents.length() - 7) {
+                    //Find beginning tag
+                    if (contents.substring(i, i + 7).equals("\"\"\"html")) {
+                        htmlfound = true;
+                        startidx = i + 7;
+                        endidx = contents.length() - 1;
+                        //Find end tag
+                    } else if (contents.substring(i, i + 7).equals("html\"\"\"")) {
+                        if (htmlfound) {
+                            endidx = i - 1;
+                            contents = MiscUtils.strCutAndConvert(contents, startidx, endidx, MiscUtils.getCurrentLine(contents, i));
+                            htmlfound = false;
+                            break;
+                        } else {
+                            //Count newlines to get the line number
+                            String linecounttemp = contents.substring(0, i + 1);
+                            int cnt = MiscUtils.countChar(linecounttemp, '\n') + 1;
 
-                                contents = "a.write('<font color=\"red\" size=\"120\">Error: missing opening html tag (\"\"\"html) for closing tag (html\"\"\") in line " + cnt + "</font>";
-                            }
+                            contents = "a.write('<font color=\"red\" size=\"120\">Error: missing opening html tag (\"\"\"html) for closing tag (html\"\"\") in line " + cnt + "</font>";
                         }
                     }
                 }
-
-                PythonInterpreter pi = new PythonInterpreter();
-                pi.exec("import me.felixnaumann.fwebserver.api.PythonApi as PythonApi");
-                pi.exec("a = PythonApi(\"" + rqid + "\")");
-                HashMap<String, String> getparams = MiscUtils.getGETParams(Server.currentHeader.getGETparams());
-                String dict = MiscUtils.constructPythonDictFromHashMap("GET", getparams);
-                pi.exec(dict);
-                pi.exec(contents);
-
-                return Server.scriptresults.get(rqid).toString();
             }
-        } catch (IOException e) {
-            e.printStackTrace();
+
+            PythonInterpreter pi = new PythonInterpreter();
+            pi.exec("import me.felixnaumann.fwebserver.api.PythonApi as PythonApi");
+            pi.exec("a = PythonApi(\"" + clientRequest.getRequestId() + "\")");
+            HashMap<String, String> getparams = MiscUtils.getGETParams(clientRequest.getRequestHeader().getGETparams());
+            String dict = MiscUtils.constructPythonDictFromHashMap("GET", getparams);
+            pi.exec(dict);
+            pi.exec(contents);
+
+            return Server.getInstance().scriptresults.get(clientRequest.getRequestId()).toString();
         }
         return "";
+    }
+
+
+    /**
+     * Remove any parts of the file path that point outside the wwwroot
+     *
+     * @param filename the file name to escape
+     * @return the sandboxed filepath
+     */
+    public static String sandboxFilename(String filename) {
+        if (filename.startsWith("..") || filename.startsWith("/")) {
+            return filename.replace("..", "").replaceFirst("/", "");
+        }
+        return filename;
     }
 }

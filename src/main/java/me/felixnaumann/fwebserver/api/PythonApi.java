@@ -20,19 +20,19 @@ public class PythonApi {
 
 
     public void write(String line) {
-        Server.scriptresults.replace(requestid, Server.scriptresults.get(requestid).append(line));
+        Server.getInstance().scriptresults.replace(requestid, Server.getInstance().scriptresults.get(requestid).append(line));
     }
 
     public String getRequestMethod() {
-        return Server.getInstance(0, false).getCurrentHeader().getRequesttype();
+        return Server.getInstance().scriptheader.get(requestid).getRequesttype();
     }
 
     public boolean isGetSet(String getparam) {
-        return Server.scriptheader.get(requestid).getGETparams().matches(getparam + "=.+");
+        return Server.getInstance().scriptheader.get(requestid).getGETparams().matches(getparam + "=.+");
     }
 
     public HashMap<String, String> getHeaderFields() {
-        return Server.scriptheader.get(requestid).getOtherfields();
+        return Server.getInstance().scriptheader.get(requestid).getOtherfields();
     }
 
     public String URLdecode(String encoded) {

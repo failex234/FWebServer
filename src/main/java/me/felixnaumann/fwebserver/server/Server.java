@@ -1,7 +1,9 @@
 package me.felixnaumann.fwebserver.server;
 
-import me.felixnaumann.fwebserver.model.ClientHeader;
+import me.felixnaumann.fwebserver.model.Request;
+import me.felixnaumann.fwebserver.model.RequestHeader;
 import me.felixnaumann.fwebserver.model.ServerConfig;
+import me.felixnaumann.fwebserver.model.WebServer;
 import me.felixnaumann.fwebserver.utils.*;
 
 import java.io.*;
@@ -9,52 +11,40 @@ import java.net.BindException;
 import java.net.ServerSocket;
 import java.util.*;
 
-public class Server {
-
-    public static int port;
-    public static String NAME = "FWebServer";
-    public static final String VERSION = "0.3.1";
+public class Server extends WebServer {
     private ServerSocket mainsocket;
     private Thread incoming;
 
     public static ArrayList<String> blacklist = new ArrayList<>();
+    public ArrayList<Request> liverequests = new ArrayList<>();
 
     public static ServerConfig config;
     public static boolean configloaded;
 
-    //TODO: Move all header related stuff to socket thread.
-    public static ClientHeader currentHeader = null;
-
-    public static HashMap<String, StringBuilder> scriptresults = new HashMap<>();
-    public static HashMap<String, ClientHeader> scriptheader = new HashMap<>();
+    public HashMap<String, StringBuilder> scriptresults = new HashMap<>();
+    public HashMap<String, RequestHeader> scriptheader = new HashMap<>();
 
     public static String currdir;
 
-    public static File wantedfile;
-    public static String wantedfilemime;
-    public static Date wantedfileLastModified;
-
-    private static Server srv = null;
+    private static Server serverinstance = null;
 
     public static Server getInstance(int port, boolean silenced) {
-        if (srv == null) {
-            srv = new Server(port, silenced);
+        if (serverinstance == null) {
+            serverinstance = new Server(port, silenced);
         }
-        return srv;
+        return serverinstance;
     }
 
     public static Server getInstance() {
-        return srv;
+        return getInstance(3000, false);
     }
 
-
     private Server(int port, boolean silenced) {
+        super(port, "FWebServer");
         currdir = "";
-        wantedfilemime = "text/html";
 
         prepareConfig();
         LogUtils.prepareLog();
-        this.port = port;
         LogUtils.setSilenced(silenced);
         startServer();
     }
@@ -65,8 +55,6 @@ public class Server {
     private void prepareConfig() {
         this.config = FileUtils.getServerConfig();
 
-        this.NAME = config.getServername();
-
         FileUtils.createWwwRoot(config.getWwwroot(), config);
         configloaded = true;
     }
@@ -76,11 +64,11 @@ public class Server {
      */
     private void startServer() {
         try {
-            mainsocket = new ServerSocket(port);
-            incoming = new Thread(new IncomingThread(mainsocket, port));
+            mainsocket = new ServerSocket(this.getPort());
+            incoming = new Thread(new IncomingThread(mainsocket, this.getPort()));
             incoming.start();
         } catch (BindException be) {
-            System.err.printf("Cannot bind port :%d. Port may already be in use.\n", port);
+            System.err.printf("Cannot bind port :%d. Port may already be in use.\n", this.getPort());
             System.exit(1);
         } catch (IOException e) {
             e.printStackTrace();
@@ -104,15 +92,5 @@ public class Server {
 
         }
         System.exit(0);
-    }
-
-
-    public static ClientHeader getCurrentHeader() {
-        return currentHeader;
-    }
-
-
-    public static void setCurrentHeader(ClientHeader header) {
-        currentHeader = header;
     }
 }

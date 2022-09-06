@@ -5,7 +5,7 @@ import me.felixnaumann.fwebserver.utils.MiscUtils;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-public class ClientHeader {
+public class RequestHeader {
 
     private String requesttype = "";
     private String requesteddocument = "";
@@ -17,7 +17,7 @@ public class ClientHeader {
     private boolean headercorrupt = false;
     private HashMap<String, String> otherfields = new HashMap<>();
 
-    public ClientHeader(ArrayList<String> header) {
+    public RequestHeader(ArrayList<String> header) {
         int line = 0;
         for (String elems : header) {
             //TODO Check for incomplete header

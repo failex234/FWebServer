@@ -15,7 +15,7 @@ public class CliCommands {
 
     @CliCommandName("version")
     public static void versionCommand(ConsoleCommand command) {
-        System.out.printf("%s version %s\n", Server.NAME, Server.VERSION);
+        System.out.printf("%s version %s\n", Server.getInstance().NAME, Server.getInstance().VERSION);
     }
 
     @CliCommandName(value = "help", implemented = false)
@@ -82,7 +82,7 @@ public class CliCommands {
 
     @CliCommandName("status")
     public static void statusCommand(ConsoleCommand command) {
-        System.out.printf("%s running on port :%d\n", Server.NAME, Server.port);
+        System.out.printf("%s running on port :%d\n", Server.getInstance().NAME, Server.getInstance().PORT);
         System.out.printf("www-root: %s\nconfig path: %s\nlog path: %s\n",
                 new File(Server.config.getWwwroot()).getAbsolutePath(),
                 Server.config.getConfigFile().getAbsolutePath(),
