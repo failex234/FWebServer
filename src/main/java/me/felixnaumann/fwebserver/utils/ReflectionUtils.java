@@ -1,6 +1,6 @@
 package me.felixnaumann.fwebserver.utils;
 
-import me.felixnaumann.fwebserver.cli.CliCommandName;
+import me.felixnaumann.fwebserver.annotations.CliCommandName;
 import me.felixnaumann.fwebserver.cli.CliCommands;
 
 import java.lang.annotation.Annotation;

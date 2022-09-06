@@ -16,7 +16,7 @@ public class IncomingThread implements Runnable {
 
     @Override
     public void run() {
-        System.out.printf("%s listening on port %d\n", Server.SERVERNAME, port);
+        System.out.printf("%s listening on port %d\n", Server.NAME, port);
         while (!Thread.currentThread().isInterrupted()) {
             try {
                 Socket socket = mainsocket.accept();

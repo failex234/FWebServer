@@ -56,7 +56,7 @@ public class SocketThread implements Runnable {
                                 for (String file : Server.config.getIndexfiles()) {
                                     if (FileUtils.fileExists(header.getRequesteddocument() + "/" + file) == 1) {
                                         indexfilename = (new File(header.getRequesteddocument() + "/" + file)).getName();
-                                        contents = HtmlUtils.processHTML(FileUtils.readFilePlain(header.getRequesteddocument() + "/" + file), header);
+                                        contents = HtmlUtils.replaceKeywords(FileUtils.readFilePlain(header.getRequesteddocument() + "/" + file), header);
                                         indexfound = true;
                                         break;
                                     }
@@ -98,7 +98,7 @@ public class SocketThread implements Runnable {
                                         String contents = "";
                                         try {
                                             contents = FileUtils.interpretScriptFile(new File(header.getRequesteddocument()), header.getRequesteddocument(), reqid);
-                                            ServerUtils.writeResponse(bw, 200, HtmlUtils.processHTML(contents, header));
+                                            ServerUtils.writeResponse(bw, 200, HtmlUtils.replaceKeywords(contents, header));
                                             LogUtils.logResponse(200, socket.getInetAddress().toString());
                                         }
                                         catch (Exception e) {
@@ -110,7 +110,7 @@ public class SocketThread implements Runnable {
                                         Server.scriptheader.remove(reqid);
                                     } else if (MiscUtils.getFileExtension(header.getRequesteddocument()).endsWith(".html")){
                                         ServerUtils.writeResponse(bw, 200,
-                                                HtmlUtils.processHTML(FileUtils.readFilePlain(header.getRequesteddocument()), header));
+                                                HtmlUtils.replaceKeywords(FileUtils.readFilePlain(header.getRequesteddocument()), header));
                                         LogUtils.logResponse(200, socket.getInetAddress().toString());
                                     } else {
                                         ServerUtils.writeBinaryResponse(binaryOut, 200, FileUtils.readBinaryFile(header.getRequesteddocument()));

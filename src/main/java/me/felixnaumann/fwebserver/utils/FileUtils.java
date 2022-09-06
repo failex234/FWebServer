@@ -14,10 +14,15 @@ import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 
+/**
+ * Contains some utilities regarding the file system and files
+ * needed for the application.
+ */
 public class FileUtils {
 
     /**
      * Read the server config
+     *
      * @return the server config as an object
      */
     public static ServerConfig getServerConfig() {
@@ -60,8 +65,9 @@ public class FileUtils {
 
     /**
      * Create the wwwroot if it doesn't exist yet
+     *
      * @param wwwroot the path to the wwwroot
-     * @param config the servers configuration
+     * @param config  the servers configuration
      */
     public static void createWwwRoot(String wwwroot, ServerConfig config) {
         File webroot = new File(wwwroot);
@@ -102,7 +108,7 @@ public class FileUtils {
     }
 
     /**
-     * Converts the number of bytes into the correct unit
+     * Converts the number of bytes into the correct SI unit (base 10)
      *
      * @param size the number of bytes
      * @return the correctly formatted file size
@@ -134,7 +140,7 @@ public class FileUtils {
     }
 
     /**
-     * Converts the number of bytes into the correct unit
+     * Converts the number of bytes into the correct binary unit
      *
      * @param size the number of bytes
      * @return the correctly formatted file size
@@ -143,15 +149,19 @@ public class FileUtils {
         StringBuilder endstring = new StringBuilder();
         double convertedsize;
         endstring.append("SIZE ");
+        //size < 2^10
         if (size < 1024L) {
             convertedsize = (double) size;
             endstring.append("B");
+        //size > 2^10 && size < 2^20
         } else if (size > 1024L && size < 1048576L) {
             convertedsize = (double) size / 1024D;
             endstring.append("KiB");
+        //size > 2^20 && size < 2^30
         } else if (size > 104857L && size < 1073741824L) {
             convertedsize = (double) size / 1048576D;
             endstring.append("MiB");
+        //size > 2^30 && size < 2^40
         } else if (size > 1073741824L && size < 1099511627776L) {
             convertedsize = (double) size / 1073741824D;
             endstring.append("GiB");
@@ -167,6 +177,7 @@ public class FileUtils {
 
     /**
      * Convert the wanted size to a representation in SI- and binary units.
+     *
      * @param size the size in bytes to convert
      * @return the size converted into both units
      */
@@ -231,6 +242,7 @@ public class FileUtils {
 
     /**
      * Read a binary file instead of a plain-text file
+     *
      * @param filename the path to the file
      * @return the files' contents as a byte array
      */
@@ -243,12 +255,11 @@ public class FileUtils {
         try (
                 InputStream inputStream = new BufferedInputStream(new FileInputStream(infile));
         ) {
-                byte[] buffer = new byte[(int) infile.length()];
-                inputStream.read(buffer);
+            byte[] buffer = new byte[(int) infile.length()];
+            inputStream.read(buffer);
 
-                return buffer;
-        }
-        catch (IOException e) {
+            return buffer;
+        } catch (IOException e) {
             e.printStackTrace();
         }
         return new byte[0];
@@ -304,10 +315,10 @@ public class FileUtils {
         }
         html.append("\n\t\t</table>");
         html.append("\n\t\t<hr>\n\t\t$(servername)")
-                .append(!Server.config.isVersionSuppressed() ? "/" + Server.SERVERVERSION : "")
+                .append(!Server.config.isVersionSuppressed() ? "/" + Server.VERSION : "")
                 .append("\n\t</body>\n</html>");
 
-        return HtmlUtils.processHTML(html.toString(), header);
+        return HtmlUtils.replaceKeywords(html.toString(), header);
     }
 
     /**
@@ -384,26 +395,26 @@ public class FileUtils {
                 int startidx = 0, endidx = 0;
 
                 //Extract html areas from script file
-                while (contents.contains("\"\"\"html")) {
-                    for (int i = 0; i < contents.length(); i++) {
-                        if (i < contents.length() - 7) {
-                            if (contents.substring(i, i + 7).equals("\"\"\"html")) {
-                                htmlfound = true;
-                                startidx = i + 7;
-                                endidx = contents.length() - 1;
-                            } else if (contents.substring(i, i + 7).equals("html\"\"\"")) {
-                                if (htmlfound) {
-                                    endidx = i - 1;
-                                    contents = MiscUtils.strCutAndConvert(contents, startidx, endidx, MiscUtils.getCurrentLine(contents, i));
-                                    htmlfound = false;
-                                    break;
-                                } else {
-                                    //Count newlines to get the line number
-                                    String linecounttemp = contents.substring(0, i + 1);
-                                    int cnt = MiscUtils.countChar(linecounttemp, '\n') + 1;
+                for (int i = 0; i < contents.length(); i++) {
+                    if (i < contents.length() - 7) {
+                        //Find beginning tag
+                        if (contents.substring(i, i + 7).equals("\"\"\"html")) {
+                            htmlfound = true;
+                            startidx = i + 7;
+                            endidx = contents.length() - 1;
+                            //Find end tag
+                        } else if (contents.substring(i, i + 7).equals("html\"\"\"")) {
+                            if (htmlfound) {
+                                endidx = i - 1;
+                                contents = MiscUtils.strCutAndConvert(contents, startidx, endidx, MiscUtils.getCurrentLine(contents, i));
+                                htmlfound = false;
+                                break;
+                            } else {
+                                //Count newlines to get the line number
+                                String linecounttemp = contents.substring(0, i + 1);
+                                int cnt = MiscUtils.countChar(linecounttemp, '\n') + 1;
 
-                                    contents = "a.write('<font color=\"red\" size=\"120\">Error: missing opening html tag (\"\"\"html) for closing tag (html\"\"\") in line " + cnt + "</font>";
-                                }
+                                contents = "a.write('<font color=\"red\" size=\"120\">Error: missing opening html tag (\"\"\"html) for closing tag (html\"\"\") in line " + cnt + "</font>";
                             }
                         }
                     }

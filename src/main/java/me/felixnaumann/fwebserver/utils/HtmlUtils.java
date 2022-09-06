@@ -1,11 +1,7 @@
 package me.felixnaumann.fwebserver.utils;
 
 import me.felixnaumann.fwebserver.model.ClientHeader;
-import me.felixnaumann.fwebserver.model.HttpStatus;
-import me.felixnaumann.fwebserver.server.Server;
-
-import java.io.BufferedWriter;
-import java.io.IOException;
+import me.felixnaumann.fwebserver.server.SpecialKeywords;
 
 public class HtmlUtils {
     /**
@@ -14,10 +10,7 @@ public class HtmlUtils {
      * @param header the client header
      * @return the processed HTML
      */
-    public static String processHTML(String rawhtml, ClientHeader header) {
-        for(String keys : Server.specialkeywords.keySet()) {
-            rawhtml = rawhtml.replace("$(" + keys + ")", Server.specialkeywords.get(keys).run(header));
-        }
-        return rawhtml;
+    public static String replaceKeywords(String rawhtml, ClientHeader header) {
+        return SpecialKeywords.getAllKeywords(header, rawhtml);
     }
 }

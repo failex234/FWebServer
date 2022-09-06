@@ -1,12 +1,9 @@
-package me.felixnaumann.fwebserver.cli;
-
-import jdk.jfr.Enabled;
+package me.felixnaumann.fwebserver.annotations;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 
 @Retention(RetentionPolicy.RUNTIME)
-public @interface CliCommandName {
+public @interface SpecialKeyword {
     String value();
-    boolean implemented() default true;
 }

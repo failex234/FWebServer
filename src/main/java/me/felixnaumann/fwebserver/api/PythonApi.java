@@ -7,6 +7,9 @@ import me.felixnaumann.fwebserver.utils.MiscUtils;
 import java.util.Base64;
 import java.util.HashMap;
 
+/**
+ * Contains methods that can get called from pyfs files
+ */
 public class PythonApi {
     private String requestid;
 

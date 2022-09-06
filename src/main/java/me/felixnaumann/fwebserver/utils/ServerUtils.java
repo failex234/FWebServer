@@ -23,7 +23,7 @@ public class ServerUtils {
 
         if (code != null) {
             bw.write("HTTP/1.1 " + status + " " + code + "\r\n");
-            bw.write("Server: " + Server.SERVERNAME + "\r\n");
+            bw.write("Server: " + Server.NAME + "\r\n");
 
             bw.write("Content-Type: " + Server.wantedfilemime + "\r\n");
             SimpleDateFormat sdf = new SimpleDateFormat("EE, dd MMM YYYY HH:mm:ss zz", Locale.ENGLISH);
@@ -56,7 +56,7 @@ public class ServerUtils {
 
         if (code != null) {
             outputStream.writeBytes("HTTP/1.1 " + status + " " + code + "\r\n");
-            outputStream.writeBytes("Server: " + Server.SERVERNAME + "\r\n");
+            outputStream.writeBytes("Server: " + Server.NAME + "\r\n");
 
             outputStream.writeBytes("Content-Type: " + Server.wantedfilemime + "\r\n");
             outputStream.writeBytes("Content-Length: " + response.length + "\r\n");
@@ -87,7 +87,7 @@ public class ServerUtils {
                             status,
                             HttpStatus.getText(status),
                             HttpStatus.getStatus(status).getErrortext(doc),
-                            Server.SERVERNAME + (!Server.config.isVersionSuppressed() ? "/" + Server.SERVERVERSION : ""),
+                            Server.NAME + (!Server.config.isVersionSuppressed() ? "/" + Server.VERSION : ""),
                             System.getProperty("os.name"),
                             host
                             ));

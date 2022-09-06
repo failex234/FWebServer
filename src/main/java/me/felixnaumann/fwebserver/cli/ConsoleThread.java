@@ -1,14 +1,13 @@
 package me.felixnaumann.fwebserver.cli;
 
+import me.felixnaumann.fwebserver.annotations.CliCommandName;
 import me.felixnaumann.fwebserver.model.ConsoleCommand;
 import me.felixnaumann.fwebserver.server.Server;
 import me.felixnaumann.fwebserver.utils.ReflectionUtils;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.Arrays;
 import java.util.Scanner;
 
 public class ConsoleThread implements Runnable {

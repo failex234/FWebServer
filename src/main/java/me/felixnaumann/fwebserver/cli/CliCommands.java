@@ -1,16 +1,21 @@
 package me.felixnaumann.fwebserver.cli;
 
+import me.felixnaumann.fwebserver.annotations.CliCommandName;
 import me.felixnaumann.fwebserver.model.ConsoleCommand;
 import me.felixnaumann.fwebserver.server.Server;
 
 import java.io.File;
 import java.io.IOException;
 
+/**
+ * Contains all commands that can be run from the cli
+ * interface.
+ */
 public class CliCommands {
 
     @CliCommandName("version")
     public static void versionCommand(ConsoleCommand command) {
-        System.out.printf("%s version %s\n", Server.SERVERNAME, Server.SERVERVERSION);
+        System.out.printf("%s version %s\n", Server.NAME, Server.VERSION);
     }
 
     @CliCommandName(value = "help", implemented = false)
@@ -77,7 +82,7 @@ public class CliCommands {
 
     @CliCommandName("status")
     public static void statusCommand(ConsoleCommand command) {
-        System.out.printf("%s running on port :%d\n", Server.SERVERNAME, Server.port);
+        System.out.printf("%s running on port :%d\n", Server.NAME, Server.port);
         System.out.printf("www-root: %s\nconfig path: %s\nlog path: %s\n",
                 new File(Server.config.getWwwroot()).getAbsolutePath(),
                 Server.config.getConfigFile().getAbsolutePath(),

@@ -1,28 +1,23 @@
 package me.felixnaumann.fwebserver.server;
 
 import me.felixnaumann.fwebserver.model.ClientHeader;
-import me.felixnaumann.fwebserver.GenericServerRunnable;
 import me.felixnaumann.fwebserver.model.ServerConfig;
 import me.felixnaumann.fwebserver.utils.*;
 
 import java.io.*;
 import java.net.BindException;
 import java.net.ServerSocket;
-import java.net.URISyntaxException;
 import java.util.*;
 
 public class Server {
 
     public static int port;
-    public static String SERVERNAME = "FWebServer";
-    public static final String SERVERVERSION = "0.3.1";
+    public static String NAME = "FWebServer";
+    public static final String VERSION = "0.3.1";
     private ServerSocket mainsocket;
     private Thread incoming;
 
     public static ArrayList<String> blacklist = new ArrayList<>();
-    private ArrayList<String> indexfiles = new ArrayList<>();
-
-    public static HashMap<String, GenericServerRunnable> specialkeywords = new HashMap<>();
 
     public static ServerConfig config;
     public static boolean configloaded;
@@ -59,7 +54,6 @@ public class Server {
 
         prepareConfig();
         LogUtils.prepareLog();
-        prepareHTMLProcessor();
         this.port = port;
         LogUtils.setSilenced(silenced);
         startServer();
@@ -71,57 +65,10 @@ public class Server {
     private void prepareConfig() {
         this.config = FileUtils.getServerConfig();
 
-        this.SERVERNAME = config.getServername();
+        this.NAME = config.getServername();
 
         FileUtils.createWwwRoot(config.getWwwroot(), config);
         configloaded = true;
-    }
-
-    /**
-     * Add keywords with their functions to the hashmap
-     * The HTML processor will later replace the keywords with the
-     * result of each function.
-     */
-    private void prepareHTMLProcessor() {
-        specialkeywords.put("useragent", ClientHeader::getUseragent);
-        specialkeywords.put("serverversion", header -> SERVERVERSION);
-        specialkeywords.put("servername", header -> SERVERNAME);
-        specialkeywords.put("jreversion", header -> System.getProperty("java.version"));
-        specialkeywords.put("osname", header -> System.getProperty("os.name") + " " + System.getProperty("os.version") + " " + System.getProperty("os.arch"));
-        specialkeywords.put("username", header -> System.getProperty("user.name"));
-        specialkeywords.put("accesslogpath", header -> config.getAccesslog().getAbsolutePath());
-        specialkeywords.put("errorlogpath", header -> config.getErrorlog().getAbsolutePath());
-        specialkeywords.put("configfilepath", header -> config.getConfigFile().getAbsolutePath());
-        specialkeywords.put("wwwrootpath", header -> (new File(config.getWwwroot()).getAbsolutePath()));
-        specialkeywords.put("today", header -> (new Date()).toString());
-        specialkeywords.put("headertype", ClientHeader::getRequesttype);
-        specialkeywords.put("headerversion", ClientHeader::getVersion);
-        specialkeywords.put("headerhost", ClientHeader::getHost);
-        specialkeywords.put("compiledate", new GenericServerRunnable() {
-            @Override
-            public String run(ClientHeader header) {
-                try {
-                    File jarFile = new File (this.getClass().getProtectionDomain().getCodeSource().getLocation().toURI());
-                    return (new Date(jarFile.lastModified())).toString();
-                }
-                catch (URISyntaxException e) {
-                    return "ERROR";
-                }
-            }
-        });
-
-        for (String key : config.getCustomkeywords().keySet()) {
-            specialkeywords.put(key, header -> config.getCustomkeywords().get(key));
-        }
-        specialkeywords.put("keywordlist", header -> {
-            StringBuilder endstring = new StringBuilder();
-
-            for (String keys : specialkeywords.keySet()) {
-                endstring.append(keys.replace("(", "&#40;").replace(")", "&#41;"));
-                endstring.append("<br>");
-            }
-            return endstring.toString();
-        });
     }
 
     /**
@@ -165,6 +112,4 @@ public class Server {
     public static void setCurrentHeader(ClientHeader header) {
         currentHeader = header;
     }
-
-
 }

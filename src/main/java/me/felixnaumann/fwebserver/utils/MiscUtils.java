@@ -54,7 +54,9 @@ public class MiscUtils {
 
     public static String htmlTopython(String lines, int currLine) {
         StringBuilder cmd = new StringBuilder();
-        String replaced = lines.replace("\"", "\\\"").replace("\n", "\\n");
+        String replaced = lines.replace("\"", "\\\"")
+                .replace("\n", "\\n");
+
         if (countTrailingSpaces(replaced) + countTrailingTabs(replaced) > 0) {
             int spaces = countTrailingSpaces(replaced) + countTrailingTabs(replaced);
             cmd.append(replaced.substring(0, spaces));
@@ -71,12 +73,7 @@ public class MiscUtils {
         String converted = htmlTopython(str.substring(from + 1, to), currLine);
         String after = str.substring(to + 8);
 
-        StringBuilder sb = new StringBuilder();
-        sb.append(before);
-        sb.append(converted);
-        sb.append(after);
-
-        return sb.toString();
+        return before + converted + after;
     }
 
     public static int countChar(String str, char ch) {
@@ -128,13 +125,7 @@ public class MiscUtils {
     }
 
     public static String getNChars(char ch, int charnum) {
-        StringBuilder sb = new StringBuilder();
-
-        for (int i = 0; i < charnum; i++) {
-            sb.append(ch);
-        }
-
-        return sb.toString();
+        return String.valueOf(ch).repeat(Math.max(0, charnum));
     }
 
     public static HashMap<String, String> getGETParams(String params) {
@@ -143,7 +134,7 @@ public class MiscUtils {
         HashMap<String, String> GET = new HashMap<>();
         for (String combined : keysandvals) {
             String[] seperated = combined.split("=");
-            if (seperated != null && seperated.length == 2) {
+            if (seperated.length == 2) {
                 GET.put(seperated[0], seperated[1]);
             }
         }
@@ -160,7 +151,11 @@ public class MiscUtils {
         StringBuilder sb = new StringBuilder();
         sb.append(dictname + " = {\n");
         for (String key : hm.keySet()) {
-            sb.append("    \"" + key + "\": \"" + hm.get(key) + "\",\n");
+            sb.append("    \"")
+                    .append(key)
+                    .append("\": \"")
+                    .append(hm.get(key))
+                    .append("\",\n");
         }
         sb.append("}");
 
@@ -174,8 +169,15 @@ public class MiscUtils {
         errorpage.append("<font color=\"red\">");
 
         String tempTrace = ExceptionUtils.getStackTrace(e);
-        tempTrace = tempTrace.replace("<string>", filename).replace("<", "&lt;").replace(">", "&gt;").replace("\n ", "<br>\t").replace("\n", "<br>");
-        tempTrace = tempTrace.replaceAll("\\tat.+", "").replace("\t","&nbsp;&nbsp;&nbsp;&nbsp;").replaceAll("\\r<br>+", "");
+        tempTrace = tempTrace.replace("<string>", filename)
+                             .replace("<", "&lt;")
+                             .replace(">", "&gt;")
+                             .replace("\n ", "<br>\t")
+                             .replace("\n", "<br>");
+
+        tempTrace = tempTrace.replaceAll("\\tat.+", "")
+                             .replace("\t","&nbsp;&nbsp;&nbsp;&nbsp;")
+                             .replaceAll("\\r<br>+", "");
 
         errorpage.append(tempTrace);
         errorpage.append("</font>");
@@ -187,13 +189,7 @@ public class MiscUtils {
     }
 
     public static String URLdecode(String encoded) {
-        try {
-            return URLDecoder.decode(encoded, StandardCharsets.UTF_8.toString());
-        }
-        catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-        }
-        return encoded;
+        return URLDecoder.decode(encoded, StandardCharsets.UTF_8);
     }
 
 }
