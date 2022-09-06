@@ -1,15 +1,11 @@
 package me.felixnaumann.fwebserver.server;
 
-import com.sun.jdi.InvocationException;
 import me.felixnaumann.fwebserver.annotations.SpecialKeyword;
 import me.felixnaumann.fwebserver.model.ClientHeader;
 
 import java.io.File;
-import java.lang.annotation.Annotation;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 

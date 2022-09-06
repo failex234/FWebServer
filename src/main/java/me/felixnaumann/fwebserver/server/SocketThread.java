@@ -147,6 +147,7 @@ public class SocketThread implements Runnable {
                 }
 
             }
+            IncomingThread.completeThread(Thread.currentThread());
         }
     }
 }

@@ -95,9 +95,12 @@ public class Server {
         try {
             LogUtils.consolelog("Trying to stop server");
             mainsocket.close();
+            IncomingThread.interruptAllThreads();
+
+            Thread.sleep(1000);
             incoming.interrupt();
         }
-        catch (IOException ignored) {
+        catch (IOException | InterruptedException ignored) {
 
         }
         System.exit(0);
