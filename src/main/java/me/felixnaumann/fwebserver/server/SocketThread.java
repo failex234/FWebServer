@@ -119,8 +119,8 @@ public class SocketThread implements Runnable {
                             ServerUtils.sendErrorResponse(bw, 501, header.getHost(), clientRequest, header.getRequesteddocument());
                             break;
                     }
-                    bw.flush();
                     bw.close();
+                    socket.close();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }

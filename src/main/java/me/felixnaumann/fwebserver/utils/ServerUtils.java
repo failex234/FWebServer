@@ -8,6 +8,7 @@ import org.python.bouncycastle.cert.ocsp.Req;
 import java.io.BufferedWriter;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
@@ -63,7 +64,12 @@ public class ServerUtils {
             outputStream.writeBytes("Last-Modified: " + sdf.format((new Date(request.getWantedDocument().lastModified()))) + "\r\n");
 
             outputStream.writeBytes("\r\n");
-            outputStream.write(response);
+            if (request.getWantedDocumentMime().equals("text/html")) {
+                String replacedKeywords = HtmlUtils.replaceKeywords(new String(response), request.getRequestHeader());
+                outputStream.write(replacedKeywords.getBytes(StandardCharsets.UTF_8));
+            } else {
+                outputStream.write(response);
+            }
         }
     }
 

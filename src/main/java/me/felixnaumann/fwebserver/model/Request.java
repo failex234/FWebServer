@@ -19,24 +19,19 @@ public class Request {
     private Request(String requestId, RequestHeader header) {
         this.requestId = requestId;
 
-        String finaldocument = "/";
-        if (header.getRequesteddocument().equals("/")) {
-            for (String indexfile : Server.config.getIndexfiles()) {
-                if (FileUtils.fileExists(Server.config.getWwwroot() + "/" + indexfile) == 1) {
-                    finaldocument = Server.config.getWwwroot() + "/" + indexfile;
-                }
-            }
-        } else {
-            finaldocument = header.getRequesteddocument();
-        }
-
-        this.wantedDocument = new File(FileUtils.sandboxFilename(finaldocument));
+        this.wantedDocument = new File(FileUtils.sandboxFilename(header.getRequesteddocument()));
 
         String mime = "text/html";
         try {
-            mime = Files.probeContentType(this.wantedDocument.toPath());
+            if (header.getRequesteddocument().endsWith("/")) {
+                mime = Files.probeContentType(new File(this.wantedDocument + "index.html").toPath());
+            } else {
+                mime = Files.probeContentType(this.wantedDocument.toPath());
+            }
         }
         catch (IOException ignored) {}
+
+        if (mime == null) mime = "text/html";
 
         this.wantedDocumentMime = mime;
 

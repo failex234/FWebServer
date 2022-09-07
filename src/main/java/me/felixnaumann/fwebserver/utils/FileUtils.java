@@ -274,13 +274,18 @@ public class FileUtils {
         html.append("\t\t\t<tr>\n\t\t\t\t<td style=\"width: 300px;\">Name</td><td style=\"width: 300px;\">Last modified</td><td style=\"width: 300px;\">Size</td>\n\t\t\t</tr>");
         html.append("\n\t\t\t<tr>\n\t\t\t\t<td style=\"width: 300px;\"><a href=\"").append(getParentDirectory(header.getRequesteddocument())).append("\">..</a></td><td style=\"width: 300px;\"></td><td style=\"width: 300px;\"></td>\n\t\t\t</tr>");
 
+        String pathprefix = "";
+
+        if (!path.equals("/")) {
+            pathprefix = path + "/";
+        }
+
         for (File dir : filelist) {
             if (dir.isFile()) continue;
             Date lastmodified = new Date(dir.lastModified());
             html.append("\n\t\t\t<tr>\n\t\t\t\t<td>")
                     .append("<a href=\"")
-                    .append(path)
-                    .append("/")
+                    .append(pathprefix)
                     .append(dir.getName())
                     .append("\">")
                     .append(dir.getName())
@@ -295,8 +300,7 @@ public class FileUtils {
             Date lastmodified = new Date(f.lastModified());
             html.append("\n\t\t\t<tr>\n\t\t\t\t<td>")
                     .append("<a href=\"")
-                    .append(path)
-                    .append("/")
+                    .append(pathprefix)
                     .append(f.getName())
                     .append("\">")
                     .append(f.getName())
@@ -355,6 +359,7 @@ public class FileUtils {
      * @return the parent directory of a file or ..
      */
     public static String getParentDirectory(String currdocument) {
+        if (!currdocument.equals("/") && currdocument.charAt(currdocument.length() - 1) == '/') return getParentDirectory(currdocument.substring(0, currdocument.length() - 1));
         int slashpos = 0;
         for (int i = currdocument.length() - 1; i > 0; i--) {
             if (currdocument.charAt(i) == '/') {
@@ -440,7 +445,7 @@ public class FileUtils {
         String wanteddoc = request.getRequestHeader().getRequesteddocument().replaceFirst("/", "");
         for (String file : Server.config.getIndexfiles()) {
             if (wanteddoc.isEmpty() && fileExists(file) == 1) {
-                return file;
+                return Server.config.getWwwroot() + "/" +  file;
             } else if (fileExists(wanteddoc + "/" + file) == 1) {
                 return wanteddoc + "/" + file;
             }
