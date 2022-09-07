@@ -41,37 +41,30 @@ public class SocketThread implements Runnable {
                         case "GET":
                             LogUtils.logRequest(header.getRequesttype(), socket.getInetAddress().toString(), header.getRequesteddocument());
                             if (header.getRequesteddocument().equals("/") || FileUtils.fileExists(header.getRequesteddocument()) == 3) {
-                                boolean indexfound = false;
-                                String contents = "";
-                                String indexfilename = "";
-                                for (String file : Server.config.getIndexfiles()) {
-                                    if (FileUtils.fileExists(header.getRequesteddocument() + "/" + file) == 1) {
-                                        indexfilename = (new File(header.getRequesteddocument() + "/" + file)).getName();
-                                        contents = HtmlUtils.replaceKeywords(FileUtils.readFilePlain(clientRequest.getWantedDocument()), header);
-                                        indexfound = true;
-                                        break;
-                                    }
-                                }
-                                if (!indexfound && !Server.config.isNofileindex()) {
+                                File indexfile = new File(FileUtils.findIndexFile(clientRequest));
+                                byte[] contents;
+
+                                if (!indexfile.exists() && !Server.config.isNofileindex()) {
                                     contents = FileUtils.listFiles(header.getRequesteddocument(),header);
-                                    ServerUtils.writeResponse(bw, 200, clientRequest, contents);
+                                    ServerUtils.writeBinaryResponse(binaryOut, clientRequest, 200, contents);
                                     LogUtils.logResponse(200, socket.getInetAddress().toString());
-                                } else if (indexfound) {
-                                    if (MiscUtils.getFileExtension(indexfilename).equals("pyfs")) {
+                                } else if (indexfile.exists()) {
+                                    if (MiscUtils.getFileExtension(indexfile.getName()).equals("pyfs")) {
                                         try {
                                             contents = FileUtils.interpretScriptFile(new File(header.getRequesteddocument() + "/index.pyfs"), header.getRequesteddocument() + "/index.pyfs", clientRequest);
-                                            ServerUtils.writeResponse(bw, 200, clientRequest, contents);
+                                            ServerUtils.writeBinaryResponse(binaryOut, clientRequest, 200, contents);
                                             LogUtils.logResponse(200, socket.getInetAddress().toString());
                                         }
                                         catch (Exception e) {
-                                            String error = MiscUtils.buildErrorPage(e, indexfilename);
+                                            String error = MiscUtils.buildErrorPage(e, indexfile.getName());
                                             ServerUtils.writeResponse(bw, 500, clientRequest, error);
                                             LogUtils.logResponse(500, socket.getInetAddress().toString());
                                         }
                                         Server.getInstance().scriptresults.remove(clientRequest.getRequestId());
                                         Server.getInstance().scriptheader.remove(clientRequest.getRequestId());
                                     } else {
-                                        ServerUtils.writeResponse(bw, 200, clientRequest, contents);
+                                        contents = FileUtils.readBinaryFile(indexfile);
+                                        ServerUtils.writeBinaryResponse(binaryOut, clientRequest, 200, contents);
                                         LogUtils.logResponse(200, socket.getInetAddress().toString());
                                     }
                                 } else {
@@ -83,12 +76,14 @@ public class SocketThread implements Runnable {
                             } else {
                                 int fileexist = FileUtils.fileExists(header.getRequesteddocument());
                                 if (fileexist == 1) {
+                                    header.setRequesteddocument(Server.config.getWwwroot() + "/" + header.getRequesteddocument());
+                                    clientRequest.setWantedDocument(new File(header.getRequesteddocument()));
                                     if (MiscUtils.getFileExtension(header.getRequesteddocument()).equals("pyfs")) {
                                         String reqid = MiscUtils.newRequestId();
-                                        String contents = "";
+                                        byte[] contents;
                                         try {
                                             contents = FileUtils.interpretScriptFile(new File(header.getRequesteddocument()), header.getRequesteddocument(), clientRequest);
-                                            ServerUtils.writeResponse(bw, 200, clientRequest, HtmlUtils.replaceKeywords(contents, header));
+                                            ServerUtils.writeResponse(bw, 200, clientRequest, HtmlUtils.replaceKeywords(new String(contents), header));
                                             LogUtils.logResponse(200, socket.getInetAddress().toString());
                                         }
                                         catch (Exception e) {
@@ -98,20 +93,19 @@ public class SocketThread implements Runnable {
                                         }
                                         Server.getInstance().scriptresults.remove(reqid);
                                         Server.getInstance().scriptheader.remove(reqid);
-                                    } else if (MiscUtils.getFileExtension(header.getRequesteddocument()).endsWith(".html")){
+                                    } else if (MiscUtils.getFileExtension(header.getRequesteddocument()).equals("html")){
                                         ServerUtils.writeResponse(bw, 200, clientRequest,
                                                 HtmlUtils.replaceKeywords(FileUtils.readFilePlain(clientRequest.getWantedDocument()), header));
                                         LogUtils.logResponse(200, socket.getInetAddress().toString());
                                     } else {
-                                        ServerUtils.writeBinaryResponse(binaryOut, clientRequest,200,  FileUtils.readBinaryFile(clientRequest.getWantedDocument()));
+                                        ServerUtils.writeBinaryResponse(binaryOut, clientRequest,200,  FileUtils.readBinaryFile(new File(clientRequest.getRequestHeader().getRequesteddocument())));
                                         LogUtils.logResponse(200, socket.getInetAddress().toString());
                                     }
                                 } else if (fileexist == 2){
                                     ServerUtils.sendErrorResponse(bw, 403, header.getHost(), clientRequest, header.getRequesteddocument());
                                     LogUtils.logResponse(403, socket.getInetAddress().toString(), header.getRequesteddocument());
                                 } else if (fileexist == 3) {
-                                    ServerUtils.writeResponse(bw, 200, clientRequest,
-                                            "<!doctype html>\n",
+                                    ServerUtils.writeBinaryResponse(binaryOut, clientRequest, 200,
                                             FileUtils.listFiles(header.getRequesteddocument(), header));
                                     LogUtils.logResponse(200, socket.getInetAddress().toString());
                                 } else {
@@ -125,10 +119,8 @@ public class SocketThread implements Runnable {
                             ServerUtils.sendErrorResponse(bw, 501, header.getHost(), clientRequest, header.getRequesteddocument());
                             break;
                     }
-
+                    bw.flush();
                     bw.close();
-                    socket.close();
-                    Thread.currentThread().interrupt();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }

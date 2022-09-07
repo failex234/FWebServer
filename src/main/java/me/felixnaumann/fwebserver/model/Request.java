@@ -12,7 +12,7 @@ import java.util.Date;
 public class Request {
 
     private final String requestId;
-    private final File wantedDocument;
+    private File wantedDocument;
     private final String wantedDocumentMime;
     private final RequestHeader requestHeader;
 
@@ -56,7 +56,6 @@ public class Request {
                     break;
                 }
             }
-            br.close();
 
             RequestHeader header = new RequestHeader(req);
 
@@ -73,6 +72,12 @@ public class Request {
 
     public File getWantedDocument() {
         return wantedDocument;
+    }
+
+    public void setWantedDocument(File f) {
+        if (f.exists()) {
+            this.wantedDocument = f;
+        }
     }
 
     public String getWantedDocumentMime() {

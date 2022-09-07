@@ -78,7 +78,7 @@ public class RequestHeader {
         this.requesttype = requesttype;
     }
 
-    private void setRequesteddocument(String requesteddocument) {
+    public void setRequesteddocument(String requesteddocument) {
         this.requesteddocument = requesteddocument;
     }
 

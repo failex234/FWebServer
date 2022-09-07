@@ -10,6 +10,7 @@ import me.felixnaumann.fwebserver.model.ServerConfig;
 import org.python.util.PythonInterpreter;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Base64;
 import java.util.Date;
@@ -264,7 +265,7 @@ public class FileUtils {
      * @param header
      * @return
      */
-    public static String listFiles(String path, RequestHeader header) {
+    public static byte[] listFiles(String path, RequestHeader header) {
         File[] filelist = (new File(Server.config.getWwwroot() + "/" + path).listFiles());
         StringBuilder html = new StringBuilder();
         html.append("<!DOCTYPE html>\n<html lang=\"en\">\n\t<head>\n\t\t<meta http-equiv=\"Content-Type\" content=\"text-html; charset=utf-8\"/>\n\t\t<title>Index of ").append(path).append("</title>\n\t</head>\n\t<body>\n");
@@ -310,7 +311,7 @@ public class FileUtils {
                 .append(!Server.config.isVersionSuppressed() ? "/" + Server.getInstance().VERSION : "")
                 .append("\n\t</body>\n</html>");
 
-        return HtmlUtils.replaceKeywords(html.toString(), header);
+        return HtmlUtils.replaceKeywords(html.toString(), header).getBytes(StandardCharsets.UTF_8);
     }
 
     /**
@@ -326,15 +327,20 @@ public class FileUtils {
             filename = filename.replace("..", "").replaceFirst("/", "");
         }
 
-        File temp = new File(Server.config.getWwwroot() + "/" + filename);
-        File temp2 = new File(Server.currdir + "/" + filename);
+        String relpath = "";
+
+        if (filename.startsWith(Server.config.getWwwroot())) {
+            relpath = filename;
+        } else {
+            relpath = Server.config.getWwwroot() + "/" + filename;
+        }
+
+        File testFile = new File(relpath);
 
         if (!Server.blacklist.contains(filename)) {
-            if ((temp.exists() && temp.isDirectory()) || (temp2.exists() && temp2.isDirectory())) {
-                if (temp.exists()) Server.currdir = temp.getAbsolutePath();
-                else Server.currdir = temp2.getAbsolutePath();
+            if ((testFile.exists() && testFile.isDirectory())) {
                 return 3;
-            } else if (temp.exists() || temp2.exists()) {
+            } else if (testFile.exists()) {
                 return 1;
             }
             return 0;
@@ -368,7 +374,7 @@ public class FileUtils {
      * @param clientRequest the corresponding request
      * @return the html of the interpreted scriptfile
      */
-    public static String interpretScriptFile(File scriptfile, String relpath, Request clientRequest) {
+    public static byte[] interpretScriptFile(File scriptfile, String relpath, Request clientRequest) {
         Server.getInstance().scriptresults.put(clientRequest.getRequestId(), new StringBuilder());
         Server.getInstance().scriptheader.put(clientRequest.getRequestId(), clientRequest.getRequestHeader());
         if (fileExists(relpath) == 1) {
@@ -411,9 +417,9 @@ public class FileUtils {
             pi.exec(dict);
             pi.exec(contents);
 
-            return Server.getInstance().scriptresults.get(clientRequest.getRequestId()).toString();
+            return Server.getInstance().scriptresults.get(clientRequest.getRequestId()).toString().getBytes(StandardCharsets.UTF_8);
         }
-        return "";
+        return "".getBytes(StandardCharsets.UTF_8);
     }
 
 
@@ -428,5 +434,17 @@ public class FileUtils {
             return filename.replace("..", "").replaceFirst("/", "");
         }
         return filename;
+    }
+
+    public static String findIndexFile(Request request) {
+        String wanteddoc = request.getRequestHeader().getRequesteddocument().replaceFirst("/", "");
+        for (String file : Server.config.getIndexfiles()) {
+            if (wanteddoc.isEmpty() && fileExists(file) == 1) {
+                return file;
+            } else if (fileExists(wanteddoc + "/" + file) == 1) {
+                return wanteddoc + "/" + file;
+            }
+        }
+        return "";
     }
 }
