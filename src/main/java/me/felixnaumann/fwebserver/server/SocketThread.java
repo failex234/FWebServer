@@ -71,8 +71,6 @@ public class SocketThread implements Runnable {
                                     ServerUtils.sendErrorResponse(bw, 403, header.getHost(), clientRequest, header.getRequesteddocument());
                                     LogUtils.logResponse(403, socket.getInetAddress().toString());
                                 }
-
-
                             } else {
                                 int fileexist = FileUtils.fileExists(header.getRequesteddocument());
                                 if (fileexist == 1) {

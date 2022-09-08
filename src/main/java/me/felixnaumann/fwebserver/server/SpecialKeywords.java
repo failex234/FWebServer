@@ -126,6 +126,12 @@ public class SpecialKeywords {
                     replacetext = replacetext.replace(String.format("$(%s)", keyword), (String) keywords.get(keyword).invoke(null, header));
                 }
             }
+
+            for (String keyword : Server.config.getCustomkeywords().keySet()) {
+                if (rawtext.contains(String.format("$(%s)", keyword))) {
+                    replacetext = replacetext.replace(String.format("$(%s)", keyword), (String) Server.config.getCustomkeywords().get(keyword));
+                }
+            }
             return replacetext;
         }
         catch (ReflectiveOperationException e) {

@@ -23,6 +23,15 @@ public class CliCommands {
 
     }
 
+    @CliCommandName("pwd")
+    public static void pwdCommand(ConsoleCommand command) throws IOException {
+        if (ConsoleThread.currdir.endsWith(Server.config.getWwwroot())) {
+            System.out.println("/");
+        } else {
+            System.out.println(ConsoleThread.currdir.replace(new File(Server.config.getWwwroot()).getCanonicalPath(), "").replace("\\", "/"));
+        }
+    }
+
     @CliCommandName("ls")
     public static void lsCommand(ConsoleCommand command) {
         if (command.hasArgs()) {
