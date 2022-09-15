@@ -5,6 +5,7 @@ import java.lang.annotation.RetentionPolicy;
 
 @Retention(RetentionPolicy.RUNTIME)
 public @interface CliCommandName {
-    String value();
+    String name();
+    String description() default "";
     boolean implemented() default true;
 }

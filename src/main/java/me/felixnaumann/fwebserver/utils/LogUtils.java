@@ -28,21 +28,21 @@ public class LogUtils {
     /**
      *  Log a HTTP response with the corresponding message
      */
-    public static void logResponse(int status, String endpoint, String doc) {
+    public static void logResponse(int status, String endpoint, String doc, String reqid) {
         String httptext = HttpStatus.getText(status);
-        LogUtils.consolelogf("[%s] <= %d %s\n", endpoint, status, httptext);
+        LogUtils.consolelogf("[%s] (Request %s) <= %d %s\n", endpoint, reqid, status, httptext);
 
         if (status >= HttpStatus.HTTP_BAD_REQ.toInt()) {
-            LogUtils.logError(String.format("[%s] <= %d %s %s", endpoint, status, httptext, doc));
+            LogUtils.logError(String.format("[%s] (Request %s) <= %d %s %s", endpoint, reqid, status, httptext, doc));
         }
     }
 
     /**
      *  Log a HTTP response with the corresponding error message
      */
-    public static void logResponse(int status, String endpoint) {
+    public static void logResponse(int status, String endpoint, String reqid) {
         String httptext = HttpStatus.getText(status);
-        LogUtils.consolelogf("[%s] <= %d %s\n", endpoint, status, httptext);
+        LogUtils.consolelogf("[%s] (Request %s) <= %d %s\n", endpoint, reqid, status, httptext);
 
         if (status >= HttpStatus.HTTP_BAD_REQ.toInt()) {
             LogUtils.logError(String.format("[%s] <= %d %s", endpoint, status, httptext));
@@ -55,8 +55,8 @@ public class LogUtils {
      * @param endpoint
      * @param doc
      */
-    public static void logRequest(String method, String endpoint, String doc) {
-        LogUtils.consolelogf("[%s] %s %s\n", endpoint, method, doc);
+    public static void logRequest(String method, String endpoint, String doc, String reqid) {
+        LogUtils.consolelogf("[%s] (Request %s) %s %s\n", endpoint, reqid, method, doc);
         LogUtils.logAccess(String.format("[%s] %s %s", endpoint, method, doc));
     }
 

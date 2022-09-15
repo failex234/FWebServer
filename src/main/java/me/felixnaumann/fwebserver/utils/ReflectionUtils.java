@@ -24,7 +24,7 @@ public class ReflectionUtils {
     public static Method getCliMethod(String commandName) {
         Method[] cliCommandMethods = ReflectionUtils.getCliCommandMethods();
 
-        Method[] cliCommandMatch = Arrays.stream(cliCommandMethods).filter(method -> method.getAnnotation(CliCommandName.class).value().equals(commandName)).toArray(Method[]::new);
+        Method[] cliCommandMatch = Arrays.stream(cliCommandMethods).filter(method -> method.getAnnotation(CliCommandName.class).name().equals(commandName)).toArray(Method[]::new);
         if (cliCommandMatch.length == 0) return null;
         if (cliCommandMatch.length > 1) {
             System.err.printf("WARNING: multiple methods defined with command name %s. Only running first method.\n", commandName);

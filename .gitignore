@@ -7,4 +7,5 @@ out/
 build/
 wwwroot/
 server.json
+config.ini
 gradle.properties

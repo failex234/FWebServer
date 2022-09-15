@@ -22,7 +22,7 @@ public class MiscUtils {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
             byte[] hash = md.digest(dateasstring.getBytes(StandardCharsets.UTF_8));
 
-            return byteToString(hash);
+            return byteToString(hash).substring(0, 4);
         }
         catch (NoSuchAlgorithmException ignored) {
 

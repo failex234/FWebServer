@@ -27,7 +27,7 @@ public class ServerConfig {
         accesslog = "logs/access.log";
         errorlog = "logs/error.log";
         logfolder = "logs";
-        suppressversion = false;
+        suppressversion = false; 
         nofileindex = false;
     }
 
