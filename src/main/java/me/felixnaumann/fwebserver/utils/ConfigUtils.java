@@ -1,7 +1,6 @@
 package me.felixnaumann.fwebserver.utils;
 
 import me.felixnaumann.fwebserver.model.Config;
-import me.felixnaumann.fwebserver.server.Server;
 import org.ini4j.Ini;
 
 import java.io.File;
@@ -41,11 +40,13 @@ public class ConfigUtils {
     }
 
     public static String getKey(String keypath) {
-        return keypath.substring(keypath.indexOf('.') + 1);
+        String substr = keypath.substring(keypath.indexOf('.') + 1);
+        if (substr.contains(".")) return substr.substring(0, substr.indexOf("."));
+        return substr;
     }
 
     public static String getHostKey(String keypath) {
         var key = getKey(keypath);
-        return keypath.substring(keypath.indexOf('.') + 1);
+        return keypath.substring(keypath.lastIndexOf('.') + 1);
     }
 }

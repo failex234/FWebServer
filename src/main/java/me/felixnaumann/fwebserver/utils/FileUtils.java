@@ -3,15 +3,14 @@ package me.felixnaumann.fwebserver.utils;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import me.felixnaumann.fwebserver.BuiltIn;
+import me.felixnaumann.fwebserver.FWebServer;
 import me.felixnaumann.fwebserver.model.Request;
 import me.felixnaumann.fwebserver.model.RequestHeader;
-import me.felixnaumann.fwebserver.server.Server;
-import me.felixnaumann.fwebserver.model.ServerConfig;
+import me.felixnaumann.fwebserver.server.VirtualHost;
 import org.python.util.PythonInterpreter;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
@@ -23,55 +22,11 @@ import java.util.HashMap;
 public class FileUtils {
 
     /**
-     * Read the server config
-     *
-     * @return the server config as an object
-     */
-    public static ServerConfig getServerConfig() {
-        Gson gsoninstance = null;
-        ServerConfig config;
-        StringBuilder json = new StringBuilder();
-        gsoninstance = new GsonBuilder().setPrettyPrinting().create();
-        File configfile = new File("server.json");
-
-        if (configfile.exists()) {
-            try {
-                BufferedReader br = new BufferedReader(new FileReader(configfile));
-                String line;
-                while ((line = br.readLine()) != null) {
-                    json.append(line);
-                }
-                br.close();
-                config = gsoninstance.fromJson(json.toString(), ServerConfig.class);
-            } catch (IOException e) {
-                e.printStackTrace();
-                config = new ServerConfig();
-                config.createNewConfig();
-            }
-        } else {
-            config = new ServerConfig();
-            config.createNewConfig();
-            String jsonout = gsoninstance.toJson(config);
-
-            try {
-                BufferedWriter bw = new BufferedWriter(new FileWriter(configfile));
-                bw.write(jsonout);
-                bw.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-        }
-        return config;
-    }
-
-    /**
      * Create the wwwroot if it doesn't exist yet
      *
      * @param wwwroot the path to the wwwroot
-     * @param config  the servers configuration
      */
-    public static void createWwwRoot(String wwwroot, ServerConfig config) {
+    public static void createWwwRoot(String wwwroot) {
         File webroot = new File(wwwroot);
         if (!webroot.exists()) {
             LogUtils.consolelogf("The wwwroot path \"%s\" doesn't exist. creating it for you...\n", webroot.getAbsolutePath());
@@ -99,13 +54,6 @@ public class FileUtils {
                 e.printStackTrace();
             }
 
-        } else {
-            //Check if config is null
-            String status = config.isConfigCorrupt();
-            if (!status.equals("no")) {
-                System.err.println(status);
-                System.exit(1);
-            }
         }
     }
 
@@ -265,8 +213,8 @@ public class FileUtils {
      * @param header
      * @return
      */
-    public static byte[] listFiles(String path, RequestHeader header) {
-        File[] filelist = (new File(Server.config.getWwwroot() + "/" + path).listFiles());
+    public static byte[] listFiles(String path, VirtualHost host, RequestHeader header) {
+        File[] filelist = (new File(host.getWwwRoot() + "/" + path).listFiles());
         StringBuilder html = new StringBuilder();
         html.append("<!DOCTYPE html>\n<html lang=\"en\">\n\t<head>\n\t\t<meta http-equiv=\"Content-Type\" content=\"text-html; charset=utf-8\"/>\n\t\t<title>Index of ").append(path).append("</title>\n\t</head>\n\t<body>\n");
         html.append("\t\t<h1>Index of ").append(path).append("</h1>\n");
@@ -312,10 +260,10 @@ public class FileUtils {
         }
         html.append("\n\t\t</table>");
         html.append("\n\t\t<hr>\n\t\t$(servername)")
-                .append(!Server.config.isVersionSuppressed() ? "/" + Server.getInstance().VERSION : "")
+                .append(!FWebServer.mainConfig.isVersionSuppressed() ? "/" + FWebServer.VERSION : "")
                 .append("\n\t</body>\n</html>");
 
-        return HtmlUtils.replaceKeywords(html.toString(), header).getBytes(StandardCharsets.UTF_8);
+        return HtmlUtils.replaceKeywords(html.toString(), host, header).getBytes(StandardCharsets.UTF_8);
     }
 
     /**
@@ -326,22 +274,22 @@ public class FileUtils {
      * @param filename the file to check
      * @return status code of the file
      */
-    public static int fileExists(String filename) {
+    public static int fileExists(String filename, VirtualHost host) {
         if (filename.startsWith("..") || filename.startsWith("/")) {
             filename = filename.replace("..", "").replaceFirst("/", "");
         }
 
         String relpath = "";
 
-        if (filename.startsWith(Server.config.getWwwroot())) {
+        if (filename.startsWith(host.getWwwRoot())) {
             relpath = filename;
         } else {
-            relpath = Server.config.getWwwroot() + "/" + filename;
+            relpath = host.getWwwRoot() + "/" + filename;
         }
 
         File testFile = new File(relpath);
 
-        if (!Server.blacklist.contains(filename)) {
+        if (!host.blacklist.contains(filename)) {
             if ((testFile.exists() && testFile.isDirectory())) {
                 return 3;
             } else if (testFile.exists()) {
@@ -379,10 +327,10 @@ public class FileUtils {
      * @param clientRequest the corresponding request
      * @return the html of the interpreted scriptfile
      */
-    public static byte[] interpretScriptFile(File scriptfile, String relpath, Request clientRequest) {
-        Server.getInstance().scriptresults.put(clientRequest.getRequestId(), new StringBuilder());
-        Server.getInstance().scriptheader.put(clientRequest.getRequestId(), clientRequest.getRequestHeader());
-        if (fileExists(relpath) == 1) {
+    public static byte[] interpretScriptFile(File scriptfile, String relpath, VirtualHost host, Request clientRequest) {
+        FWebServer.scriptresults.put(clientRequest.getRequestId(), new StringBuilder());
+        FWebServer.scriptheader.put(clientRequest.getRequestId(), clientRequest.getRequestHeader());
+        if (fileExists(relpath, host) == 1) {
             String contents = readScriptFile(scriptfile);
 
             boolean htmlfound = false;
@@ -422,7 +370,7 @@ public class FileUtils {
             pi.exec(dict);
             pi.exec(contents);
 
-            return Server.getInstance().scriptresults.get(clientRequest.getRequestId()).toString().getBytes(StandardCharsets.UTF_8);
+            return FWebServer.scriptresults.get(clientRequest.getRequestId()).toString().getBytes(StandardCharsets.UTF_8);
         }
         return "".getBytes(StandardCharsets.UTF_8);
     }
@@ -441,12 +389,12 @@ public class FileUtils {
         return filename;
     }
 
-    public static String findIndexFile(Request request) {
+    public static String findIndexFile(Request request, VirtualHost host) {
         String wanteddoc = request.getRequestHeader().getRequesteddocument().replaceFirst("/", "");
-        for (String file : Server.config.getIndexfiles()) {
-            if (wanteddoc.isEmpty() && fileExists(file) == 1) {
-                return Server.config.getWwwroot() + "/" +  file;
-            } else if (fileExists(wanteddoc + "/" + file) == 1) {
+        for (String file : host.getIndexFiles()) {
+            if (wanteddoc.isEmpty() && fileExists(file, host) == 1) {
+                return host.getWwwRoot() + "/" +  file;
+            } else if (fileExists(wanteddoc + "/" + file, host) == 1) {
                 return wanteddoc + "/" + file;
             }
         }

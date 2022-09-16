@@ -27,6 +27,10 @@ public class Config {
         return hostconfig.keySet().toArray(new String[0]);
     }
 
+    public HashMap<String, String> getHost(String host) {
+        return hostconfig.get(host);
+    }
+
 
     public int getInt(String keypath) {
         return Integer.parseInt(getString(keypath));
@@ -38,12 +42,16 @@ public class Config {
 
     public String getString(String keypath) {
         var cfgname = ConfigUtils.getConfigName(keypath);
+        var ret = "";
         if (cfgname.equals("Main")) {
-            return mainconfig.get(ConfigUtils.getKey(keypath));
+            ret =  mainconfig.get(ConfigUtils.getKey(keypath));
         } else {
             var hostmap = hostconfig.get(ConfigUtils.getKey(keypath));
-            return hostmap.get(ConfigUtils.getHostKey(keypath));
+            var wantedstr = hostmap.get(ConfigUtils.getHostKey(keypath));
+
+            if (wantedstr != null) ret = wantedstr;
         }
+        return ret;
     }
 
     public String[] getStringArr(String keypath) {

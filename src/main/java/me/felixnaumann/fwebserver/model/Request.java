@@ -1,13 +1,11 @@
 package me.felixnaumann.fwebserver.model;
 
-import me.felixnaumann.fwebserver.server.Server;
 import me.felixnaumann.fwebserver.utils.FileUtils;
 import me.felixnaumann.fwebserver.utils.MiscUtils;
 
 import java.io.*;
 import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.Date;
 
 public class Request {
 

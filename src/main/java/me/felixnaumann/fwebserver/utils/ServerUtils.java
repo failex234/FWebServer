@@ -1,9 +1,9 @@
 package me.felixnaumann.fwebserver.utils;
 
+import me.felixnaumann.fwebserver.FWebServer;
 import me.felixnaumann.fwebserver.model.HttpStatus;
 import me.felixnaumann.fwebserver.model.Request;
-import me.felixnaumann.fwebserver.server.Server;
-import org.python.bouncycastle.cert.ocsp.Req;
+import me.felixnaumann.fwebserver.server.VirtualHost;
 
 import java.io.BufferedWriter;
 import java.io.DataOutputStream;
@@ -26,7 +26,7 @@ public class ServerUtils {
 
         if (code != null) {
             bw.write("HTTP/1.1 " + status + " " + code + "\r\n");
-            bw.write("Server: " + Server.getInstance().NAME + "\r\n");
+            bw.write("Server: " + FWebServer.mainConfig.getServername() + "\r\n");
 
             bw.write("Content-Type: " + request.getWantedDocumentMime() + "\r\n");
             SimpleDateFormat sdf = new SimpleDateFormat("EE, dd MMM YYYY HH:mm:ss zz", Locale.ENGLISH);
@@ -49,12 +49,12 @@ public class ServerUtils {
      * @param response the text that should also get sent in the response
      * @throws IOException
      */
-    public static void writeBinaryResponse(DataOutputStream outputStream, Request request, int status, byte[] response) throws IOException {
+    public static void writeBinaryResponse(DataOutputStream outputStream, Request request, VirtualHost host, int status, byte[] response) throws IOException {
         String code = HttpStatus.getText(status);
 
         if (code != null) {
             outputStream.writeBytes("HTTP/1.1 " + status + " " + code + "\r\n");
-            outputStream.writeBytes("Server: " + Server.getInstance().NAME + "\r\n");
+            outputStream.writeBytes("Server: " + FWebServer.mainConfig.getServername() + "\r\n");
 
             outputStream.writeBytes("Content-Type: " + request.getWantedDocumentMime() + "\r\n");
             outputStream.writeBytes("Content-Length: " + response.length + "\r\n");
@@ -65,7 +65,7 @@ public class ServerUtils {
 
             outputStream.writeBytes("\r\n");
             if (request.getWantedDocumentMime().equals("text/html")) {
-                String replacedKeywords = HtmlUtils.replaceKeywords(new String(response), request.getRequestHeader());
+                String replacedKeywords = HtmlUtils.replaceKeywords(new String(response), host, request.getRequestHeader());
                 outputStream.write(replacedKeywords.getBytes(StandardCharsets.UTF_8));
             } else {
                 outputStream.write(response);
@@ -86,7 +86,7 @@ public class ServerUtils {
                             status,
                             HttpStatus.getText(status),
                             HttpStatus.getStatus(status).getErrortext(doc),
-                            Server.getInstance().NAME + (!Server.config.isVersionSuppressed() ? "/" + Server.getInstance().VERSION : ""),
+                            FWebServer.mainConfig.getServername() + (!FWebServer.mainConfig.isVersionSuppressed() ? "/" + FWebServer.VERSION : ""),
                             System.getProperty("os.name"),
                             host
                             ));

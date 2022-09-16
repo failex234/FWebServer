@@ -1,7 +1,8 @@
 package me.felixnaumann.fwebserver.utils;
 
+import me.felixnaumann.fwebserver.FWebServer;
 import me.felixnaumann.fwebserver.model.HttpStatus;
-import me.felixnaumann.fwebserver.server.Server;
+import me.felixnaumann.fwebserver.server.VirtualHost;
 
 import java.io.*;
 
@@ -66,7 +67,7 @@ public class LogUtils {
      */
     public static void logAccess(String tolog) {
         try {
-            FileWriter fw = new FileWriter(Server.config.getAccesslog(), true);
+            FileWriter fw = new FileWriter(FWebServer.mainConfig.getAccesslog(), true);
             BufferedWriter bw = new BufferedWriter(fw);
             PrintWriter out = new PrintWriter(bw);
 
@@ -86,7 +87,7 @@ public class LogUtils {
      */
     public static void logError(String toerrorlog) {
         try {
-            FileWriter fw = new FileWriter(Server.config.getErrorlog(), true);
+            FileWriter fw = new FileWriter(FWebServer.mainConfig.getErrorlog(), true);
             BufferedWriter bw = new BufferedWriter(fw);
             PrintWriter out = new PrintWriter(bw);
 
@@ -112,14 +113,14 @@ public class LogUtils {
      * Create new log files if non exist
      */
     public static void prepareLog() {
-        File logfolder = new File(Server.config.getLogfolder());
+        File logfolder = new File(FWebServer.mainConfig.getLogfolder());
 
         if (!logfolder.exists()) {
             logfolder.mkdir();
         }
         try {
-            Server.config.getAccesslog().createNewFile();
-            Server.config.getErrorlog().createNewFile();
+            FWebServer.mainConfig.getAccesslog().createNewFile();
+            FWebServer.mainConfig.getErrorlog().createNewFile();
         } catch (IOException e) {
             e.printStackTrace();
         }

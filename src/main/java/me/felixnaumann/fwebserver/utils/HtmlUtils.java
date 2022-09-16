@@ -2,6 +2,7 @@ package me.felixnaumann.fwebserver.utils;
 
 import me.felixnaumann.fwebserver.model.RequestHeader;
 import me.felixnaumann.fwebserver.server.SpecialKeywords;
+import me.felixnaumann.fwebserver.server.VirtualHost;
 
 public class HtmlUtils {
     /**
@@ -10,7 +11,7 @@ public class HtmlUtils {
      * @param header the client header
      * @return the processed HTML
      */
-    public static String replaceKeywords(String rawhtml, RequestHeader header) {
-        return SpecialKeywords.getAllKeywords(header, rawhtml);
+    public static String replaceKeywords(String rawhtml, VirtualHost host, RequestHeader header) {
+        return SpecialKeywords.getAllKeywords(header, host, rawhtml);
     }
 }

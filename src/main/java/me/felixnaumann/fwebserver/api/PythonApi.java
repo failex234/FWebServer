@@ -1,7 +1,8 @@
 package me.felixnaumann.fwebserver.api;
 
 
-import me.felixnaumann.fwebserver.server.Server;
+import me.felixnaumann.fwebserver.FWebServer;
+import me.felixnaumann.fwebserver.server.VirtualHost;
 import me.felixnaumann.fwebserver.utils.MiscUtils;
 
 import java.util.Base64;
@@ -20,19 +21,19 @@ public class PythonApi {
 
 
     public void write(String line) {
-        Server.getInstance().scriptresults.replace(requestid, Server.getInstance().scriptresults.get(requestid).append(line));
+        FWebServer.scriptresults.replace(requestid, FWebServer.scriptresults.get(requestid).append(line));
     }
 
     public String getRequestMethod() {
-        return Server.getInstance().scriptheader.get(requestid).getRequesttype();
+        return FWebServer.scriptheader.get(requestid).getRequesttype();
     }
 
     public boolean isGetSet(String getparam) {
-        return Server.getInstance().scriptheader.get(requestid).getGETparams().matches(getparam + "=.+");
+        return FWebServer.scriptheader.get(requestid).getGETparams().matches(getparam + "=.+");
     }
 
     public HashMap<String, String> getHeaderFields() {
-        return Server.getInstance().scriptheader.get(requestid).getOtherfields();
+        return FWebServer.scriptheader.get(requestid).getOtherfields();
     }
 
     public String URLdecode(String encoded) {

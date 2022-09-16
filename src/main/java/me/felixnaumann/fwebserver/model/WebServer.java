@@ -1,15 +1,19 @@
 package me.felixnaumann.fwebserver.model;
 
-import me.felixnaumann.fwebserver.server.Server;
-
 public abstract class WebServer {
-    public final int PORT;
-    public final String NAME;
-    public final String VERSION = "0.3.1";
+    private final int PORT;
+    private final String NAME;
+    private final String WWWROOT;
+    private final String[] INDEXFILES;
+    private final boolean NOINDEX;
 
-    protected WebServer(int port, String name) {
+
+    protected WebServer(int port, String name, String wwwroot, String[] indexfiles, boolean noindex) {
         this.PORT = port;
         this.NAME = name;
+        this.WWWROOT = wwwroot;
+        this.INDEXFILES = indexfiles;
+        this.NOINDEX = noindex;
     }
 
     public int getPort() {
@@ -20,7 +24,17 @@ public abstract class WebServer {
         return this.NAME;
     }
 
-    public String getVersion() {
-        return this.VERSION;
+
+    public String getWwwRoot() {
+        return this.WWWROOT;
     }
+
+    public String[] getIndexFiles() {
+        return this.INDEXFILES;
+    }
+
+    public boolean isNoIndex() {
+        return NOINDEX;
+    }
+
 }

@@ -1,5 +1,6 @@
 package me.felixnaumann.fwebserver.server;
 
+import me.felixnaumann.fwebserver.FWebServer;
 import me.felixnaumann.fwebserver.annotations.SpecialKeyword;
 import me.felixnaumann.fwebserver.model.RequestHeader;
 
@@ -12,79 +13,79 @@ import java.util.HashMap;
 public class SpecialKeywords {
 
     @SpecialKeyword("useragent")
-    private static String _keywordUseragent(RequestHeader header) {
+    private static String _keywordUseragent(RequestHeader header, VirtualHost host) {
         return header.getUseragent();
     }
 
     @SpecialKeyword("serverversion")
-    private static String _keywordServerVersion(RequestHeader header) {
-        return Server.getInstance().VERSION;
+    private static String _keywordServerVersion(RequestHeader header, VirtualHost host) {
+        return FWebServer.VERSION;
     }
 
     @SpecialKeyword("servername")
-    private static String _keywordServerName(RequestHeader header) {
-        return Server.getInstance().NAME;
+    private static String _keywordServerName(RequestHeader header, VirtualHost host) {
+        return FWebServer.mainConfig.getServername();
     }
 
     @SpecialKeyword("jreversion")
-    private static String _keywordJREVersion(RequestHeader header) {
+    private static String _keywordJREVersion(RequestHeader header, VirtualHost host) {
         return System.getProperty("java.version");
     }
 
     @SpecialKeyword("osname")
-    private static String _keywordOsName(RequestHeader header) {
+    private static String _keywordOsName(RequestHeader header, VirtualHost host) {
         return System.getProperty("os.name") + " " + System.getProperty("os.version") + " " + System.getProperty("os.arch");
     }
 
     @SpecialKeyword("username")
-    private static String _keywordUserName(RequestHeader header) {
+    private static String _keywordUserName(RequestHeader header, VirtualHost host) {
         return System.getProperty("user.name");
     }
 
     @SpecialKeyword("accesslogpath")
-    private static String _keywordAccessLogpath(RequestHeader header) {
-        return Server.config.getAccesslog().getAbsolutePath();
+    private static String _keywordAccessLogpath(RequestHeader header, VirtualHost host) {
+        return FWebServer.mainConfig.getAccesslog().getAbsolutePath();
     }
 
     @SpecialKeyword("errorlogpath")
-    private static String _keywordErrorLogpath(RequestHeader header) {
-        return Server.config.getErrorlog().getAbsolutePath();
+    private static String _keywordErrorLogpath(RequestHeader header, VirtualHost host) {
+        return FWebServer.mainConfig.getErrorlog().getAbsolutePath();
     }
 
     @SpecialKeyword("configfilepath")
-    private static String _keywordConfigFilepath(RequestHeader header) {
-        return Server.config.getConfigFile().getAbsolutePath();
+    private static String _keywordConfigFilepath(RequestHeader header, VirtualHost host) {
+        return (new File("config.ini")).getAbsolutePath();
     }
 
     @SpecialKeyword("wwwrootpath")
-    private static String _keywordWwwRootpath(RequestHeader header) {
-        return (new File(Server.config.getWwwroot()).getAbsolutePath());
+    private static String _keywordWwwRootpath(RequestHeader header, VirtualHost host) {
+        return (new File(host.getWwwRoot()).getAbsolutePath());
     }
 
     @SpecialKeyword("today")
-    private static String _keywordToday(RequestHeader header) {
+    private static String _keywordToday(RequestHeader header, VirtualHost host) {
         return (new Date()).toString();
     }
 
     @SpecialKeyword("headertype")
-    private static String _keywordHeaderType(RequestHeader header) {
+    private static String _keywordHeaderType(RequestHeader header, VirtualHost host) {
         return header.getRequesttype();
     }
 
     @SpecialKeyword("headerversion")
-    private static String _keywordHeaderVersion(RequestHeader header) {
+    private static String _keywordHeaderVersion(RequestHeader header, VirtualHost host) {
         return header.getVersion();
     }
 
     @SpecialKeyword("headerhost")
-    private static String _keywordHeaderHost(RequestHeader header) {
+    private static String _keywordHeaderHost(RequestHeader header, VirtualHost host) {
         return header.getHost();
     }
 
     @SpecialKeyword("compiledate")
-    private static String _keywordCompileDate(RequestHeader header) {
+    private static String _keywordCompileDate(RequestHeader header, VirtualHost host) {
         try {
-            File jarFile = new File (Server.getInstance().getClass().getProtectionDomain().getCodeSource().getLocation().toURI());
+            File jarFile = new File (host.getClass().getProtectionDomain().getCodeSource().getLocation().toURI());
             return (new Date(jarFile.lastModified())).toString();
         }
         catch (URISyntaxException e) {
@@ -93,7 +94,7 @@ public class SpecialKeywords {
     }
 
     @SpecialKeyword("keywordlist")
-    private static String _keywordList(RequestHeader header) {
+    private static String _keywordList(RequestHeader header, VirtualHost host) {
         StringBuilder keywords = new StringBuilder();
         for (String keyword : getKeywordList().keySet()) {
             keywords.append(keyword).append("<br>");
@@ -116,20 +117,20 @@ public class SpecialKeywords {
         return keywordmethods;
     }
 
-    public static String getAllKeywords(RequestHeader header, String rawtext) {
+    public static String getAllKeywords(RequestHeader header, VirtualHost host, String rawtext) {
         try {
             HashMap<String, Method> keywords = getKeywordList();
             String replacetext = rawtext;
 
             for (String keyword : keywords.keySet()) {
                 if (rawtext.contains(String.format("$(%s)", keyword))) {
-                    replacetext = replacetext.replace(String.format("$(%s)", keyword), (String) keywords.get(keyword).invoke(null, header));
+                    replacetext = replacetext.replace(String.format("$(%s)", keyword), (String) keywords.get(keyword).invoke(null, header, host));
                 }
             }
 
-            for (String keyword : Server.config.getCustomkeywords().keySet()) {
+            for (String keyword : FWebServer.mainConfig.getCustomkeywords().keySet()) {
                 if (rawtext.contains(String.format("$(%s)", keyword))) {
-                    replacetext = replacetext.replace(String.format("$(%s)", keyword), (String) Server.config.getCustomkeywords().get(keyword));
+                    replacetext = replacetext.replace(String.format("$(%s)", keyword), FWebServer.mainConfig.getCustomkeywords().get(keyword));
                 }
             }
             return replacetext;
