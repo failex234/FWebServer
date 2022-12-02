@@ -53,7 +53,7 @@ public class SocketThread implements Runnable {
                                 } else if (indexfile.exists()) {
                                     if (MiscUtils.getFileExtension(indexfile.getName()).equals("pyfs")) {
                                         try {
-                                            contents = FileUtils.interpretScriptFile(new File(header.getRequesteddocument() + "/index.pyfs"), header.getRequesteddocument() + "/index.pyfs", host, clientRequest);
+                                            contents = FileUtils.interpretScriptFile(indexfile, header.getRequesteddocument() + "/index.pyfs", host, clientRequest);
                                             ServerUtils.writeBinaryResponse(binaryOut, clientRequest, host, 200, contents);
                                             LogUtils.logResponse(200, socket.getInetAddress().toString(), clientRequest.getRequestId());
                                         }
@@ -103,16 +103,19 @@ public class SocketThread implements Runnable {
                                     }
                                 } else if (fileexist == 2){
                                     ServerUtils.sendErrorResponse(bw, 403, header.getHost(), clientRequest, header.getRequesteddocument());
-                                    LogUtils.logResponse(403, socket.getInetAddress().toString(), header.getRequesteddocument());
+                                    LogUtils.logResponse(403, socket.getInetAddress().toString(), clientRequest.getRequestId());
                                 } else if (fileexist == 3) {
                                     ServerUtils.writeBinaryResponse(binaryOut, clientRequest, host,200,
                                             FileUtils.listFiles(header.getRequesteddocument(), host, header));
                                     LogUtils.logResponse(200, socket.getInetAddress().toString(), clientRequest.getRequestId());
                                 } else {
                                     ServerUtils.sendErrorResponse(bw, 404, header.getHost(), clientRequest, header.getRequesteddocument());
-                                    LogUtils.logResponse(404, socket.getInetAddress().toString(), header.getRequesteddocument());
+                                    LogUtils.logResponse(404, socket.getInetAddress().toString(), clientRequest.getRequestId());
                                 }
                             }
+                            break;
+                        case "":
+                            socket.close();
                             break;
                         default:
                             LogUtils.logResponse(501, socket.getInetAddress().toString(), header.getRequesteddocument());

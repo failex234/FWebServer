@@ -180,7 +180,7 @@ public class FileUtils {
             return tempstring.toString();
         } catch (IOException e) {
             e.printStackTrace();
-            return "a.write('<font color=\"red\" size=\"120\">Error reading file</font>";
+            return "a.write('<font color=\"red\" size=\"120\">Error reading file</font>')";
         }
     }
 
@@ -364,6 +364,7 @@ public class FileUtils {
 
             PythonInterpreter pi = new PythonInterpreter();
             pi.exec("import me.felixnaumann.fwebserver.api.PythonApi as PythonApi");
+            pi.exec("import me.felixnaumann.fwebserver.FWebServer as FWebServer");
             pi.exec("a = PythonApi(\"" + clientRequest.getRequestId() + "\")");
             HashMap<String, String> getparams = MiscUtils.getGETParams(clientRequest.getRequestHeader().getGETparams());
             String dict = MiscUtils.constructPythonDictFromHashMap("GET", getparams);

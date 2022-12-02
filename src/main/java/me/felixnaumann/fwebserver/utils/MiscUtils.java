@@ -15,6 +15,7 @@ import java.util.HashMap;
 public class MiscUtils {
 
     public static String newRequestId() {
+        //TODO also base request id on wanted document and/or recipient
         SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss:SSS");
         String dateasstring = sdf.format(new Date());
 
@@ -22,7 +23,7 @@ public class MiscUtils {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
             byte[] hash = md.digest(dateasstring.getBytes(StandardCharsets.UTF_8));
 
-            return byteToString(hash).substring(0, 4);
+            return byteToString(hash).substring(0, 6);
         }
         catch (NoSuchAlgorithmException ignored) {
 

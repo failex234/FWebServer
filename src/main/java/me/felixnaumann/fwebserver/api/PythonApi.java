@@ -20,7 +20,7 @@ public class PythonApi {
     }
 
 
-    public void write(String line) {
+    public void write(Object line) {
         FWebServer.scriptresults.replace(requestid, FWebServer.scriptresults.get(requestid).append(line));
     }
 

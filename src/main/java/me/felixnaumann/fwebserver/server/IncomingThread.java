@@ -30,9 +30,7 @@ public class IncomingThread implements Runnable {
                 Thread newThread = new Thread(new SocketThread(socket, host));
                 currentThreads.add(newThread);
                 newThread.start();
-            } catch (IOException e) {
-
-            }
+            } catch (IOException ignored) {}
         }
     }
 
