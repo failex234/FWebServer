@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Locale;
 
 public class ServerUtils {
@@ -33,6 +34,13 @@ public class ServerUtils {
 
             bw.write("Date: " + sdf.format(new Date()) + "\r\n");
             bw.write("Last-Modified: " + sdf.format((new Date(request.getWantedDocument().lastModified()))) + "\r\n");
+
+            HashMap<String, String> customheaders = FWebServer.mainConfig.getCustomheaders();
+
+            for (String customheader : customheaders.keySet()) {
+                String value = customheaders.get(customheader);
+                bw.write(customheader + ": " + value + "\r\n");
+            }
 
             bw.write("");
             bw.write("\r\n");
@@ -63,6 +71,13 @@ public class ServerUtils {
             outputStream.writeBytes("Date: " + sdf.format(new Date()) + "\r\n");
             outputStream.writeBytes("Last-Modified: " + sdf.format((new Date(request.getWantedDocument().lastModified()))) + "\r\n");
 
+            HashMap<String, String> customheaders = FWebServer.mainConfig.getCustomheaders();
+
+            for (String customheader : customheaders.keySet()) {
+                String value = customheaders.get(customheader);
+                outputStream.writeBytes(customheader + ": " + value + "\r\n");
+            }
+
             outputStream.writeBytes("\r\n");
             if (request.getWantedDocumentMime().equals("text/html")) {
                 String replacedKeywords = HtmlUtils.replaceKeywords(new String(response), host, request.getRequestHeader());
@@ -91,9 +106,7 @@ public class ServerUtils {
                             host
                             ));
         }
-        catch (IOException ignored) {
-
-        }
+        catch (IOException ignored) {}
     }
 
 

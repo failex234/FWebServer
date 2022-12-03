@@ -102,7 +102,7 @@ public class FWebServer {
         mainConfig.setErrorlog(errlog);
         mainConfig.setSuppressversion(supress);
 
-        //TODO load keywords
+        mainConfig.setCustomMaps(config.getKeywords(), config.getHeaders());
     }
 
 }

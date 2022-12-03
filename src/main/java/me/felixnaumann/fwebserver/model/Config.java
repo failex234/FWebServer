@@ -9,18 +9,41 @@ public class Config {
     private Map<String, String> mainconfig;
     private Map<String, HashMap<String, String>> hostconfig;
 
+    private HashMap<String, String> keywords;
+    private HashMap<String, String> headers;
+
     public Config() {
         this.mainconfig = new HashMap<>();
         this.hostconfig = new HashMap<>();
+        this.keywords = new HashMap<>();
+        this.headers = new HashMap<>();
     }
 
     public Config(Map<String, String> pMainconfig) {
         this.mainconfig = new HashMap<>(pMainconfig);
         this.hostconfig = new HashMap<>();
+        this.keywords = new HashMap<>();
+        this.headers = new HashMap<>();
     }
 
     public void addHost(String name, Map<String, String> hostmap) {
         hostconfig.put(name, new HashMap<>(hostmap));
+    }
+
+    public void addKeyword(String keywordname, String keywordval) {
+        keywords.put(keywordname, keywordval);
+    }
+
+    public void addHeader(String headername, String headerval) {
+        headers.put(headername, headerval);
+    }
+
+    public HashMap<String, String> getKeywords() {
+        return this.keywords;
+    }
+
+    public HashMap<String, String> getHeaders() {
+        return this.headers;
     }
 
     public String[] getHosts() {

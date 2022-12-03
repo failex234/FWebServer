@@ -100,6 +100,10 @@ public class SpecialKeywords {
             keywords.append(keyword).append("<br>");
         }
 
+        for (String customkeyword : FWebServer.mainConfig.getCustomkeywords().keySet()) {
+            keywords.append(customkeyword).append("<br>");
+        }
+
         return keywords.toString();
     }
 

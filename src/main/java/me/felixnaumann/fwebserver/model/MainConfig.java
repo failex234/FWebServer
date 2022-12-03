@@ -13,6 +13,8 @@ public class MainConfig {
     private boolean suppressversion;
     private HashMap<String, String> customkeywords = new HashMap<>();
 
+    private HashMap<String, String> customheaders = new HashMap<>();
+
     public void createNewConfig() {
         accesslog = "access.log";
         errorlog = "error.log";
@@ -58,6 +60,15 @@ public class MainConfig {
 
     public HashMap<String, String> getCustomkeywords() {
         return customkeywords;
+    }
+
+    public HashMap<String, String> getCustomheaders() {
+        return customheaders;
+    }
+
+    public void setCustomMaps(HashMap<String, String> customkeywords, HashMap<String, String> customheaders) {
+        this.customheaders = customheaders;
+        this.customkeywords = customkeywords;
     }
 
     public String getServername() {

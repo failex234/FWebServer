@@ -6,6 +6,7 @@ import org.ini4j.Ini;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.Map;
 
 public class ConfigUtils {
     private static File configfile = new File("config.ini");
@@ -25,6 +26,16 @@ public class ConfigUtils {
                 for (var key : ini.keySet()) {
                     if (key.startsWith("Host.")) {
                         cfg.addHost(getHostKey(key), ini.get(key));
+                    } else if (key.equals("Keywords")) {
+                        Map<String, String> keywords = ini.get(key);
+                        for (String keyword : keywords.keySet()) {
+                            cfg.addKeyword(keyword, keywords.get(keyword));
+                        }
+                    } else if (key.equals("Headers")) {
+                        Map<String, String> headers = ini.get(key);
+                        for (String header : headers.keySet()) {
+                            cfg.addHeader(header, headers.get(header));
+                        }
                     }
                 }
 
