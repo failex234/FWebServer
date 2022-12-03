@@ -5,7 +5,13 @@ import me.felixnaumann.fwebserver.model.MainConfig;
 import me.felixnaumann.fwebserver.model.RequestHeader;
 import me.felixnaumann.fwebserver.server.VirtualHost;
 import me.felixnaumann.fwebserver.utils.ConfigUtils;
+import me.felixnaumann.fwebserver.utils.FileUtils;
+import me.felixnaumann.fwebserver.utils.LogUtils;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -42,7 +48,24 @@ public class FWebServer {
     private static void startServer() {
         if (!running) {
             running = true;
-            loadConfig();
+
+            boolean configfound = loadConfig();
+
+            if (!configfound) {
+                boolean configunpacked = FileUtils.unpackFile("config.ini", "");
+
+                if (configunpacked) {
+                    LogUtils.consolelog("This seems to be the first start as such a default config has been created." +
+                            " You can find the config under config.ini. Please restart FWebServer.");
+                    System.exit(0);
+                } else {
+                    LogUtils.consolelog("This seems to be the first start but an error occurred while trying" +
+                            " to create the default config. Please make sure you have writing permissions" +
+                            " for the current directory and try again.");
+                    System.exit(1);
+                }
+            }
+
             for (String host : config.getHosts()) {
                 int port;
                 String wwwroot;
@@ -70,6 +93,10 @@ public class FWebServer {
 
                 threads.add(t);
             }
+
+            if (config.getHosts().length == 0) {
+                LogUtils.consoleloge("No virtual hosts have been defined.");
+            }
         }
     }
 
@@ -85,8 +112,13 @@ public class FWebServer {
 
     }
 
-    private static void loadConfig() {
+    /**
+     * Checks if a config already exists and loads it
+     * @return true when an existing config was found and loaded, false when no config was found
+     */
+    private static boolean loadConfig() {
         config = ConfigUtils.loadConfig();
+        if (config.isInitialconfig()) return false;
         mainConfig = new MainConfig();
         mainConfig.createNewConfig();
 
@@ -103,6 +135,7 @@ public class FWebServer {
         mainConfig.setSuppressversion(supress);
 
         mainConfig.setCustomMaps(config.getKeywords(), config.getHeaders());
+        return true;
     }
 
 }

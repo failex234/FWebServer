@@ -21,6 +21,7 @@ public class ConfigUtils {
 
                 //Create new config object with populated main section
                 Config cfg = new Config(mainsec);
+                cfg.setInitialconfig(false);
 
                 //Populate config with all host sections
                 for (var key : ini.keySet()) {

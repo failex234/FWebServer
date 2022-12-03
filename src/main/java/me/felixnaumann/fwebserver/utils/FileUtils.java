@@ -1,8 +1,5 @@
 package me.felixnaumann.fwebserver.utils;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import me.felixnaumann.fwebserver.BuiltIn;
 import me.felixnaumann.fwebserver.FWebServer;
 import me.felixnaumann.fwebserver.model.Request;
 import me.felixnaumann.fwebserver.model.RequestHeader;
@@ -11,7 +8,7 @@ import org.python.util.PythonInterpreter;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.util.Base64;
+import java.nio.file.Files;
 import java.util.Date;
 import java.util.HashMap;
 
@@ -31,29 +28,18 @@ public class FileUtils {
         if (!webroot.exists()) {
             LogUtils.consolelogf("The wwwroot path \"%s\" doesn't exist. creating it for you...\n", webroot.getAbsolutePath());
             webroot.mkdir();
-            File aboutfile = new File(wwwroot + "/about2.html");
-            File indexfile = new File(wwwroot + "/index.html");
-            File dynfile = new File(wwwroot + "/about2dyn.pyfs");
-            String filecontents = new String(Base64.getDecoder().decode(BuiltIn.about2));
-            String indexcontents = new String(Base64.getDecoder().decode(BuiltIn.index));
-            String dynfilecontents = new String(Base64.getDecoder().decode(BuiltIn.dyn));
 
-            try {
-                BufferedWriter bw = new BufferedWriter(new FileWriter(aboutfile));
-                bw.write(filecontents);
-                bw.close();
+            boolean about2unpacked = FileUtils.unpackFile("about2.html", "wwwroot");
+            boolean indexunpacked = FileUtils.unpackFile("index.html", "wwwroot");
+            boolean dynunpacked = FileUtils.unpackFile("about2dyn.pyfs", "wwwroot");
 
-                bw = new BufferedWriter(new FileWriter(indexfile));
-                bw.write(indexcontents);
-                bw.close();
-
-                bw = new BufferedWriter(new FileWriter(dynfile));
-                bw.write(dynfilecontents);
-                bw.close();
-            } catch (IOException e) {
-                e.printStackTrace();
+            if (!about2unpacked || !indexunpacked || !dynunpacked) {
+                LogUtils.consoleloge("One or more files were not able to get unpacked.");
+                LogUtils.consolelogf("about2.html = %s, index.html = %s, about2dyn.pyfs = %s",
+                        about2unpacked ? "unpacked" : "error",
+                        indexunpacked ? "unpacked" : "error",
+                        dynunpacked ? "unpacked" : "error");
             }
-
         }
     }
 
@@ -400,5 +386,23 @@ public class FileUtils {
             }
         }
         return "";
+    }
+
+    /**
+     * Unpacks a file contained in the jar to the current directory
+     * @param filename the file to unpack
+     * @param destination the file destination
+     * @return true when the unpacking was successful, false otherwise
+     */
+    public static boolean unpackFile(String filename, String destination) {
+        try {
+            InputStream unpackfile = FWebServer.class.getResourceAsStream(String.format("/%s", filename));
+            File destinationfile = destination.length() == 0 ? new File(filename) : new File(String.format("%s/%s",destination, filename));
+            Files.copy(unpackfile, destinationfile.getAbsoluteFile().toPath());
+        }
+        catch (IOException e) {
+            return false;
+        }
+        return true;
     }
 }

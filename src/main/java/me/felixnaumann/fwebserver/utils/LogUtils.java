@@ -17,6 +17,14 @@ public class LogUtils {
     }
 
     /**
+     * log an error to the console
+     * @param string console text
+     */
+    public static void consoleloge(String string) {
+        System.err.println("[ERR] " + string);
+    }
+
+    /**
      * log formatted to the console
      * @param format text format
      * @param objects

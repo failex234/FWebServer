@@ -12,6 +12,8 @@ public class Config {
     private HashMap<String, String> keywords;
     private HashMap<String, String> headers;
 
+    private boolean initialconfig = true;
+
     public Config() {
         this.mainconfig = new HashMap<>();
         this.hostconfig = new HashMap<>();
@@ -83,4 +85,11 @@ public class Config {
     }
 
 
+    public boolean isInitialconfig() {
+        return initialconfig;
+    }
+
+    public void setInitialconfig(boolean initialconfig) {
+        this.initialconfig = initialconfig;
+    }
 }
