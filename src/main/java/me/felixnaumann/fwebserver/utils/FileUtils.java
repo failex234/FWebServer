@@ -58,16 +58,16 @@ public class FileUtils {
             endstring.append("B");
         } else if (size > 999L && size < 999999L) {
             convertedsize = (double) size / 1000D;
-            endstring.append("K");
+            endstring.append("KB");
         } else if (size > 999999L && size < 999999999L) {
             convertedsize = (double) size / 1000000D;
-            endstring.append("M");
+            endstring.append("MB");
         } else if (size > 999999999L && size < 999999999999L) {
             convertedsize = (double) size / 100000000D;
-            endstring.append("G");
+            endstring.append("GB");
         } else {
             convertedsize = (double) size / 1000000000000D;
-            endstring.append("T");
+            endstring.append("TB");
         }
 
         if (convertedsize == (long) convertedsize)
