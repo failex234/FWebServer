@@ -8,5 +8,6 @@ build/
 wwwroot/
 server.json
 /config.ini
+!/*/config.ini
 gradle.properties
 .DS_STORE
