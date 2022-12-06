@@ -2,7 +2,7 @@ package me.felixnaumann.fwebserver.api;
 
 
 import me.felixnaumann.fwebserver.FWebServer;
-import me.felixnaumann.fwebserver.server.VirtualHost;
+import me.felixnaumann.fwebserver.annotations.PythonApiInterface;
 import me.felixnaumann.fwebserver.utils.MiscUtils;
 
 import java.util.Base64;
@@ -11,6 +11,7 @@ import java.util.HashMap;
 /**
  * Contains methods that can get called from pyfs files
  */
+@PythonApiInterface(instanceNeeded = true)
 public class PythonApi {
     private String requestid;
 

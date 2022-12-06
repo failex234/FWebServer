@@ -1,5 +1,6 @@
 package me.felixnaumann.fwebserver;
 
+import me.felixnaumann.fwebserver.annotations.PythonApiInterface;
 import me.felixnaumann.fwebserver.model.Config;
 import me.felixnaumann.fwebserver.model.MainConfig;
 import me.felixnaumann.fwebserver.model.RequestHeader;
@@ -8,13 +9,10 @@ import me.felixnaumann.fwebserver.utils.ConfigUtils;
 import me.felixnaumann.fwebserver.utils.FileUtils;
 import me.felixnaumann.fwebserver.utils.LogUtils;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+@PythonApiInterface
 public class FWebServer {
 
     private static boolean silenceflag = false;

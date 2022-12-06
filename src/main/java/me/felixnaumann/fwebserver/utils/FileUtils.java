@@ -1,6 +1,7 @@
 package me.felixnaumann.fwebserver.utils;
 
 import me.felixnaumann.fwebserver.FWebServer;
+import me.felixnaumann.fwebserver.annotations.PythonApiInterface;
 import me.felixnaumann.fwebserver.model.Request;
 import me.felixnaumann.fwebserver.model.RequestHeader;
 import me.felixnaumann.fwebserver.server.VirtualHost;
@@ -348,10 +349,20 @@ public class FileUtils {
                 }
             }
 
+            //TODO Switch to PythonIntepreterWrapper after script can get checked line by line for illegal java class accesses
             PythonInterpreter pi = new PythonInterpreter();
-            pi.exec("import me.felixnaumann.fwebserver.api.PythonApi as PythonApi");
-            pi.exec("import me.felixnaumann.fwebserver.FWebServer as FWebServer");
-            pi.exec("a = PythonApi(\"" + clientRequest.getRequestId() + "\")");
+
+            //Import all classes that are marked with @PythonApiInterface
+            for (Class<?> apiclazz : ReflectionUtils.getPythonApiClassesDb()) {
+                boolean needsInstance = apiclazz.getAnnotation(PythonApiInterface.class).instanceNeeded();
+                if (needsInstance) {
+                    pi.exec(String.format("import %s as _%s", apiclazz.getName(), apiclazz.getSimpleName()));
+                    pi.exec(String.format("%s = _%s(\"%s\")", apiclazz.getSimpleName(), apiclazz.getSimpleName(), clientRequest.getRequestId()));
+                } else {
+                    pi.exec(String.format("import %s as %s", apiclazz.getName(), apiclazz.getSimpleName()));
+                }
+            }
+
             HashMap<String, String> getparams = MiscUtils.getGETParams(clientRequest.getRequestHeader().getGETparams());
             String dict = MiscUtils.constructPythonDictFromHashMap("GET", getparams);
             pi.exec(dict);

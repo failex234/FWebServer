@@ -1,7 +1,5 @@
 package me.felixnaumann.fwebserver.server;
 
-import me.felixnaumann.fwebserver.model.Request;
-import me.felixnaumann.fwebserver.model.RequestHeader;
 import me.felixnaumann.fwebserver.model.WebServer;
 import me.felixnaumann.fwebserver.utils.*;
 

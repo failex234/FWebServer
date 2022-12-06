@@ -2,7 +2,6 @@ package me.felixnaumann.fwebserver.utils;
 
 import me.felixnaumann.fwebserver.FWebServer;
 import me.felixnaumann.fwebserver.model.HttpStatus;
-import me.felixnaumann.fwebserver.server.VirtualHost;
 
 import java.io.*;
 
