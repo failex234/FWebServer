@@ -1,6 +1,9 @@
 package me.felixnaumann.fwebserver.utils;
 
+import me.felixnaumann.fwebserver.exception.PyfsAccessViolation;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.python.core.PyException;
+import org.python.core.PyJavaType;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -168,23 +171,32 @@ public class MiscUtils {
         errorpage.append("<h2>Error while processing pyfs:</h2>");
         errorpage.append("<font color=\"red\">");
 
-        String tempTrace = ExceptionUtils.getStackTrace(e);
-        tempTrace = tempTrace.replace("<string>", filename)
-                             .replace("<", "&lt;")
-                             .replace(">", "&gt;")
-                             .replace("\r", "")
-                             .replace("\n ", "<br>\t")
-                             .replace("\n", "<br>");
+        if (e instanceof PyException) {
+            PyException pex = (PyException) e;
+                String tempTrace = ExceptionUtils.getStackTrace(e);
+                tempTrace = tempTrace.replace("<string>", filename)
+                        .replace("<", "&lt;")
+                        .replace(">", "&gt;")
+                        .replace("\r", "")
+                        .replace("\n ", "<br>\t")
+                        .replace("\n", "<br>");
 
-        tempTrace = tempTrace.replaceAll("\\tat.+", "")
-                             .replace("\t","&nbsp;&nbsp;&nbsp;&nbsp;")
-                             .replaceAll("\\r<br>+", "");
+                tempTrace = tempTrace.replaceAll("\\tat.+", "")
+                        .replace("\t", "&nbsp;&nbsp;&nbsp;&nbsp;")
+                        .replaceAll("\\r<br>+", "");
 
-        errorpage.append(tempTrace);
+            if (pex.type instanceof PyJavaType) {
+                tempTrace = tempTrace.replace(PyfsAccessViolation.class.getName() + ": ", "JavaClassAccessViolation: ");
+            }
+
+                errorpage.append(tempTrace);
+        } else {
+            errorpage.append(e.getMessage());
+        }
         errorpage.append("</font>");
         errorpage.append("</body></html>");
         String error = errorpage.toString();
-        e.printStackTrace();
+        LogUtils.logError(e.getMessage());
 
         return error.replace("<module>", "module");
     }

@@ -93,6 +93,7 @@ public class LogUtils {
      * @param toerrorlog the string to append
      */
     public static void logError(String toerrorlog) {
+        consoleloge(toerrorlog);
         try {
             FileWriter fw = new FileWriter(FWebServer.mainConfig.getErrorlog(), true);
             BufferedWriter bw = new BufferedWriter(fw);

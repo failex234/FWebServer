@@ -56,6 +56,7 @@ public class SocketThread implements Runnable {
                                             contents = FileUtils.interpretScriptFile(indexfile, header.getRequesteddocument() + "/index.pyfs", host, clientRequest);
                                             ServerUtils.writeBinaryResponse(binaryOut, clientRequest, host, 200, contents);
                                             LogUtils.logResponse(200, socket.getInetAddress().toString(), clientRequest.getRequestId());
+
                                         }
                                         catch (Exception e) {
                                             String error = MiscUtils.buildErrorPage(e, indexfile.getName());

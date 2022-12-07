@@ -8,6 +8,7 @@ import me.felixnaumann.fwebserver.server.VirtualHost;
 import me.felixnaumann.fwebserver.utils.ConfigUtils;
 import me.felixnaumann.fwebserver.utils.FileUtils;
 import me.felixnaumann.fwebserver.utils.LogUtils;
+import me.felixnaumann.fwebserver.utils.ReflectionUtils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -46,6 +47,10 @@ public class FWebServer {
     private static void startServer() {
         if (!running) {
             running = true;
+
+            //Set SL4J loglevel to disable log message from Reflections class
+            System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "error");
+            ReflectionUtils.initializeDb();
 
             boolean configfound = loadConfig();
 

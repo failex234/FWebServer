@@ -1,5 +1,6 @@
 package me.felixnaumann.fwebserver;
 
+import me.felixnaumann.fwebserver.exception.PyfsAccessViolation;
 import me.felixnaumann.fwebserver.utils.LogUtils;
 import me.felixnaumann.fwebserver.utils.ReflectionUtils;
 
@@ -22,7 +23,7 @@ public class PythonInterpreterClassLoader extends ClassLoader {
             Set<String> allowedClasses = ReflectionUtils.getPythonApiClassesDb().stream().map(Class::getName).collect(Collectors.toSet());
 
             if (allowedClasses.contains(className)) return clazz;
-            throw new RuntimeException(String.format("Access to class %s is restricted", className));
+            throw new PyfsAccessViolation(className);
         }
 
         return PythonInterpreterClassLoader.getSystemClassLoader().loadClass(className);
