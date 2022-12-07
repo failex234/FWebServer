@@ -11,7 +11,7 @@ public class ReflectionUtils {
 
     //Builds the database of all classes that can be called from the python api
     static {
-        Reflections reflections = new Reflections(FWebServer.class.getPackage().getName());
+        Reflections reflections = new Reflections(FWebServer.class.getPackageName());
         pythonApiClassesDb =  reflections.getTypesAnnotatedWith(PythonApiInterface.class);
     }
 

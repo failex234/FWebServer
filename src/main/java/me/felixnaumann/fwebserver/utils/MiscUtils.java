@@ -172,6 +172,7 @@ public class MiscUtils {
         tempTrace = tempTrace.replace("<string>", filename)
                              .replace("<", "&lt;")
                              .replace(">", "&gt;")
+                             .replace("\r", "")
                              .replace("\n ", "<br>\t")
                              .replace("\n", "<br>");
 

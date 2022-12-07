@@ -1,13 +1,17 @@
 package me.felixnaumann.fwebserver.utils;
 
 import me.felixnaumann.fwebserver.FWebServer;
+import me.felixnaumann.fwebserver.PythonInterpreterClassLoader;
 import me.felixnaumann.fwebserver.annotations.PythonApiInterface;
 import me.felixnaumann.fwebserver.model.Request;
 import me.felixnaumann.fwebserver.model.RequestHeader;
 import me.felixnaumann.fwebserver.server.VirtualHost;
+import org.python.core.Py;
+import org.python.core.PySystemState;
 import org.python.util.PythonInterpreter;
 
 import java.io.*;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Date;
@@ -314,7 +318,7 @@ public class FileUtils {
      * @param clientRequest the corresponding request
      * @return the html of the interpreted scriptfile
      */
-    public static byte[] interpretScriptFile(File scriptfile, String relpath, VirtualHost host, Request clientRequest) {
+    public static byte[] interpretScriptFile(File scriptfile, String relpath, VirtualHost host, Request clientRequest) throws InstantiationException, IllegalAccessException, InvocationTargetException, ClassNotFoundException, InterruptedException {
         FWebServer.scriptresults.put(clientRequest.getRequestId(), new StringBuilder());
         FWebServer.scriptheader.put(clientRequest.getRequestId(), clientRequest.getRequestHeader());
         if (fileExists(relpath, host) == 1) {
@@ -350,6 +354,9 @@ public class FileUtils {
             }
 
             //TODO Switch to PythonIntepreterWrapper after script can get checked line by line for illegal java class accesses
+            final PySystemState state = new PySystemState();
+            state.setClassLoader(new PythonInterpreterClassLoader());
+            Py.setSystemState(state);
             PythonInterpreter pi = new PythonInterpreter();
 
             //Import all classes that are marked with @PythonApiInterface
@@ -363,10 +370,12 @@ public class FileUtils {
                 }
             }
 
+
             HashMap<String, String> getparams = MiscUtils.getGETParams(clientRequest.getRequestHeader().getGETparams());
             String dict = MiscUtils.constructPythonDictFromHashMap("GET", getparams);
             pi.exec(dict);
             pi.exec(contents);
+
 
             return FWebServer.scriptresults.get(clientRequest.getRequestId()).toString().getBytes(StandardCharsets.UTF_8);
         }
